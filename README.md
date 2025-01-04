@@ -1,2 +1,2 @@
 # slc-control
-SLC Control
+Display Controller for SLC Kit Car 
