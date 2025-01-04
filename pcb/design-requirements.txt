@@ -1,0 +1,17 @@
+altitude(pressure sensor) (LPS22HH)
+compass sensor (QMC5883L)
+gps (standard module)
+2 big mosfet switches (N type positive rail)
+eeprom memory
+1 speed replicate channel (mosfet pull, optional push)
+usb-connection
+four regular buttons
+corner plated mounting holes (through display)
+screen connection
+3 sensor channels (voltage divider to internal comparator with hysteresis, DAC input)
+screw terminals for connections
+
+speed channel(DAC with buffered output)
+3d printed case
+External Active Antenna
+https://www.amazon.com/Waterproof-Active-Antenna-28dB-3-5VDC/dp/B00LXRQY9A/ref=sr_1_1_sspa?crid=154MYHLW97GFK&dib=eyJ2IjoiMSJ9.LNXUoYBLYPyk7t1JLvEu-o_GPhNOuBu_7rVYh0eJg9X1f0GToyGVs4kYDJm-am26cO8bprzNGRG67j1bwHeZ4jlS_Zq4R13rKkiO1BqFUvac1BNHNA0Tdt2TUrulfhZsjrCZ2850Tzgn8S2x913To5dBDdEyOXJ0atzDL9M1hUPK5KUPKLKQboJTo5YNdZpb5emalCQnw7cjS6vf7Nw62qLb3yLrPFT1VVSAjQfk5Ho.1W2v7qLCoqdW9_JIPkz5am-lu2-KZQOCbo7z-VLrcuo&dib_tag=se&keywords=gps+active+antenna&qid=1719821863&sprefix=gps+active+antenna%2Caps%2C81&sr=8-1-spons&sp_csd=d2lkZ2V0TmFtZT1zcF9hdGY&psc=1
