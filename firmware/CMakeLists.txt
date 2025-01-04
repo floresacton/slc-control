@@ -40,19 +40,28 @@ add_executable(${CMAKE_PROJECT_NAME})
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
 
+set(LIB_COMPS
+    PID
+)
+
+add_subdirectory(/home/mfact/Projects/stm-lib "${CMAKE_CURRENT_BINARY_DIR}/stm-lib")
+
 # Link directories setup
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined library search paths
 )
 
+file(GLOB APP_SRC "App/Src/*.c")
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
+    ${APP_SRC}
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
+    App/Inc
 )
 
 # Add project symbols (macros)
@@ -63,6 +72,17 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
 # Add linked libraries
 target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
-
+    stm_lib
     # Add user defined libraries
 )
+
+add_custom_command(
+    OUTPUT ${CMAKE_PROJECT_NAME}.bin
+    COMMAND ${CMAKE_OBJCOPY} -O binary ${CMAKE_PROJECT_NAME}.elf ${CMAKE_PROJECT_NAME}.bin
+    DEPENDS ${CMAKE_PROJECT_NAME}.elf
+)
+add_custom_target(
+    gen_bin ALL
+    DEPENDS ${CMAKE_PROJECT_NAME}.bin
+)
+add_dependencies(gen_bin ${CMAKE_PROJECT_NAME})
