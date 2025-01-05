@@ -41,7 +41,20 @@ add_executable(${CMAKE_PROJECT_NAME})
 add_subdirectory(cmake/stm32cubemx)
 
 set(LIB_COMPS
-    PID
+    OLED
+    DISPLAY
+    BITMAP
+    FONT
+    EEPROM
+    MEMORY
+    BUTTON
+    GPS
+    NMEA
+    TACH
+    LPS22HH
+    QMC5883
+    ICM42688
+    STR
 )
 
 add_subdirectory(/home/mfact/Projects/stm-lib "${CMAKE_CURRENT_BINARY_DIR}/stm-lib")

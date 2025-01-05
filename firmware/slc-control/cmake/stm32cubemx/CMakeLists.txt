@@ -13,9 +13,13 @@ target_compile_definitions(stm32cubemx INTERFACE
 )
 
 target_include_directories(stm32cubemx INTERFACE
+    ../../USB_Device/App
+    ../../USB_Device/Target
     ../../Core/Inc
     /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Drivers/STM32G4xx_HAL_Driver/Inc
     /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Drivers/STM32G4xx_HAL_Driver/Inc/Legacy
+    /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Middlewares/ST/STM32_USB_Device_Library/Core/Inc
+    /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
     /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Drivers/CMSIS/Device/ST/STM32G4xx/Include
     /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Drivers/CMSIS/Include
 )
@@ -24,7 +28,13 @@ target_sources(stm32cubemx INTERFACE
     ../../Core/Src/main.c
     ../../Core/Src/stm32g4xx_it.c
     ../../Core/Src/stm32g4xx_hal_msp.c
-    /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr_ex.c
+    ../../USB_Device/App/usb_device.c
+    ../../USB_Device/App/usbd_desc.c
+    ../../USB_Device/App/usbd_cdc_if.c
+    ../../USB_Device/Target/usbd_conf.c
+    /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pcd.c
+    /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pcd_ex.c
+    /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_ll_usb.c
     /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal.c
     /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc.c
     /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_rcc_ex.c
@@ -36,8 +46,24 @@ target_sources(stm32cubemx INTERFACE
     /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma.c
     /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dma_ex.c
     /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr.c
+    /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_pwr_ex.c
     /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_cortex.c
+    /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_comp.c
+    /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dac.c
+    /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_dac_ex.c
+    /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_i2c.c
+    /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_i2c_ex.c
+    /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_spi.c
+    /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_spi_ex.c
+    /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_tim.c
+    /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_tim_ex.c
+    /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_uart.c
+    /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Drivers/STM32G4xx_HAL_Driver/Src/stm32g4xx_hal_uart_ex.c
     ../../Core/Src/system_stm32g4xx.c
+    /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c
+    /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c
+    /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c
+    /home/mfact/Toolchain/st/STM32Cube_FW_G4_V1.6.1/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c
     ../../Core/Src/sysmem.c
     ../../Core/Src/syscalls.c
     ../../startup_stm32g431xx.s
