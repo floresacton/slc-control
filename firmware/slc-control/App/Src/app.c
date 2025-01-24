@@ -273,7 +273,7 @@ void App_Init(void) {
 	Tach_Init(&tach1); // good
 	Tach_Init(&tach2); // good
 	Tach_Init(&tach3); // good
-	Display_Init(&display);
+	// Display_Init(&display);
 
 	// good
 	HAL_COMP_Start(&hcomp1);
@@ -299,14 +299,14 @@ void App_Update(void) {
 	//20000 = 1rpm
 	//1 = 20000rpm
 
-	Display_Update(&display);
+	// Display_Update(&display);
 	HAL_Delay(20);
-//	char buf[20];
+	char buf[20] = "bob";
 //	sprintf(buf, "%d", Tach_GetRpm(&tachs, 0));
-//	Oled_ClearRectangle(&oled, 0, 31, 128, 50);
-//	Oled_SetCursor(&oled, 4, 32);
-//	Oled_DrawString(&oled, buf, &Font_7x10);
-//	Oled_Update(&oled);
+	Oled_ClearRectangle(&oled, 0, 31, 128, 50);
+	Oled_SetCursor(&oled, 4, 32);
+	Oled_DrawString(&oled, buf, &Font_7x10);
+	Oled_Update(&oled);
 //
 //	HAL_Delay(100);
 
