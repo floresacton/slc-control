@@ -28,16 +28,13 @@ extern I2C_HandleTypeDef hi2c2;
 extern SPI_HandleTypeDef hspi1;
 extern SPI_HandleTypeDef hspi2;
 
-extern TIM_HandleTypeDef htim1;
-extern TIM_HandleTypeDef htim2;
-extern TIM_HandleTypeDef htim3;
-extern TIM_HandleTypeDef htim4;
+extern TIM_HandleTypeDef htim1; // 50khz tach count
+extern TIM_HandleTypeDef htim2; // 50hz tach update
+extern TIM_HandleTypeDef htim3; // 50hz button update
+extern TIM_HandleTypeDef htim17; // replicator
 
 extern DAC_HandleTypeDef hdac1;
 extern DAC_HandleTypeDef hdac3;
-
-extern UART_HandleTypeDef huart3;
-extern DMA_HandleTypeDef hdma_usart3_rx;
 
 extern COMP_HandleTypeDef hcomp1;
 extern COMP_HandleTypeDef hcomp2;
@@ -253,60 +250,60 @@ static uint16_t app_rpm_max(uint16_t a, uint16_t b) {
 }
 
 void App_Init(void) {
-	// good
-	HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 2048);
-	HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_2, DAC_ALIGN_12B_R, 2048);
+	// HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 2048);
+	// HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_2, DAC_ALIGN_12B_R, 2048);
 	HAL_DAC_SetValue(&hdac3, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 2048);
 
-	HAL_Delay(100);
-	Oled_Init(&oled); // good
-	Memory_Init(&memory); // good
-	Button_Init(&button1); // good
-	Button_Init(&button2); // good
-	Button_Init(&button3); // good
-	Button_Init(&button4); // good
-	Gps_Init(&gps); // good
-	Nmea_Init(&nmea); // good
-	Lps22hh_Init(&pressure); // good
-	Qmc5883_Init(&magnet); // good
-	Icm42688_Init(&imu); // good
-	Tach_Init(&tach1); // good
-	Tach_Init(&tach2); // good
-	Tach_Init(&tach3); // good
+	HAL_Delay(10);
+	// Oled_Init(&oled);
+	// Memory_Init(&memory);
+	// Button_Init(&button1);
+	// Button_Init(&button2);
+	// Button_Init(&button3);
+	// Button_Init(&button4);
+	// Gps_Init(&gps);
+	// Nmea_Init(&nmea);
+	// Lps22hh_Init(&pressure);
+	// Qmc5883_Init(&magnet);
+	// Icm42688_Init(&imu);
+	// Tach_Init(&tach1);
+	// Tach_Init(&tach2);
+	Tach_Init(&tach3);
 	// Display_Init(&display);
 
-	// good
-	HAL_COMP_Start(&hcomp1);
-	HAL_COMP_Start(&hcomp2);
+	// HAL_COMP_Start(&hcomp1);
+	// HAL_COMP_Start(&hcomp2);
 	HAL_COMP_Start(&hcomp3);
 
-	// good
-	HAL_TIM_Base_Start_IT(&htim4);
+	HAL_TIM_Base_Start_IT(&htim1);
+	HAL_TIM_Base_Start_IT(&htim2);
+	HAL_TIM_Base_Start_IT(&htim3);
+	HAL_TIM_Base_Start_IT(&htim17);
 }
 
 void App_Update(void) {
-	const uint16_t vehicle_rpm = app_rpm_max(tach1.rpm, var_trigger_min.value);
-	const uint16_t left_tire_rpm = tach2.rpm;
-	const uint16_t right_tire_rpm = tach3.rpm;
-	const uint16_t avg_tire_rpm = (left_tire_rpm + right_tire_rpm) / 2;
-	const uint16_t max_tire_rpm = app_rpm_max(app_rpm_max(left_tire_rpm, right_tire_rpm), 1);
+	// const uint16_t vehicle_rpm = app_rpm_max(tach1.rpm, var_trigger_min.value);
+	// const uint16_t left_tire_rpm = tach2.rpm;
+	// const uint16_t right_tire_rpm = tach3.rpm;
+	// const uint16_t avg_tire_rpm = (left_tire_rpm + right_tire_rpm) / 2;
+	// const uint16_t max_tire_rpm = app_rpm_max(app_rpm_max(left_tire_rpm, right_tire_rpm), 1);
 
-	slip = 1.0f - vehicle_rpm / max_tire_rpm;
-	HAL_GPIO_WritePin(DRV1_GPIO_Port, DRV1_Pin, var_active.value || (slip > var_trigger_prim.value));
-	HAL_GPIO_WritePin(DRV2_GPIO_Port, DRV2_Pin, var_active.value || (avg_tire_rpm < var_trigger_aux.value));
+	// slip = 1.0f - vehicle_rpm / max_tire_rpm;
+	// HAL_GPIO_WritePin(DRV1_GPIO_Port, DRV1_Pin, var_active.value || (slip > var_trigger_prim.value));
+	// HAL_GPIO_WritePin(DRV2_GPIO_Port, DRV2_Pin, var_active.value || (avg_tire_rpm < var_trigger_aux.value));
 
-	__HAL_TIM_SET_AUTORELOAD(&htim4, 40000/vehicle_rpm);
+	// __HAL_TIM_SET_AUTORELOAD(&htim4, 40000/vehicle_rpm);
 	//20000 = 1rpm
 	//1 = 20000rpm
 
 	// Display_Update(&display);
 	HAL_Delay(20);
-	char buf[20] = "bob";
-//	sprintf(buf, "%d", Tach_GetRpm(&tachs, 0));
-	Oled_ClearRectangle(&oled, 0, 31, 128, 50);
-	Oled_SetCursor(&oled, 4, 32);
-	Oled_DrawString(&oled, buf, &Font_7x10);
-	Oled_Update(&oled);
+// 	char buf[20] = "bob";
+// //	sprintf(buf, "%d", Tach_GetRpm(&tachs, 0));
+// 	Oled_ClearRectangle(&oled, 0, 31, 128, 50);
+// 	Oled_SetCursor(&oled, 4, 32);
+// 	Oled_DrawString(&oled, buf, &Font_7x10);
+// 	Oled_Update(&oled);
 //
 //	HAL_Delay(100);
 
@@ -323,25 +320,25 @@ void App_Update(void) {
 
 void App_UsbHandler(uint8_t* data, uint32_t len) {
 	#ifdef USB_TO_GPS
-	Gps_Transmit(&gps, data, len);
+	//Gps_Transmit(&gps, data, len);
 	#endif
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if (htim == &htim1) {
-		Tach_Count(&tach1);
-		Tach_Count(&tach2);
+		// Tach_Count(&tach1);
+		// Tach_Count(&tach2);
 		Tach_Count(&tach3);
 	} else if (htim == &htim2) {
-		Tach_Update(&tach1);
-		Tach_Update(&tach2);
+		// Tach_Update(&tach1);
+		// Tach_Update(&tach2);
 		Tach_Update(&tach3);
 	} else if (htim == &htim3) {
-		Button_Update(&button1);
-		Button_Update(&button2);
-		Button_Update(&button3);
-		Button_Update(&button4);
-	} else if (htim == &htim4) {
+		// Button_Update(&button1);
+		// Button_Update(&button2);
+		// Button_Update(&button3);
+		// Button_Update(&button4);
+	} else if (htim == &htim17) {
 		// HAL_GPIO_TogglePin(REPL_GPIO_Port, REPL_Pin);
 	}
 }
@@ -350,29 +347,29 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	if (Nmea_ExtFlag(&nmea, GPIO_Pin)) {
 //		Nmea_ExtHandler(&nmea);
 	} else if (Lps22hh_ExtFlag(&pressure, GPIO_Pin)) {
-		Lps22hh_ExtHandler(&pressure);
+		// Lps22hh_ExtHandler(&pressure);
 	} else if (Qmc5883_ExtFlag(&magnet, GPIO_Pin)) {
-		Qmc5883_ExtHandler(&magnet);
+		// Qmc5883_ExtHandler(&magnet);
 	} else if (Icm42688_ExtFlag(&imu, GPIO_Pin)) {
-		Icm42688_ExtHandler(&imu);
+		// Icm42688_ExtHandler(&imu);
 	}
 }
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
 	if (Gps_UartFlag(&gps, huart)) {
-		Gps_UartHandler(&gps, size);
+		// Gps_UartHandler(&gps, size);
 		#ifdef GPS_TO_USB
-		CDC_Transmit_FS(gps.readBuf, size);
+		// CDC_Transmit_FS(gps.readBuf, size);
 		#endif
-		Nmea_Parse(&nmea, gps.readBuf, size);
+		// Nmea_Parse(&nmea, gps.readBuf, size);
 	}
 }
 
 void HAL_COMP_TriggerCallback(COMP_HandleTypeDef *hcomp) {
 	if (hcomp == &hcomp2) {
-		Tach_Trigger(&tach1);
+		// Tach_Trigger(&tach1);
 	}else if (hcomp == &hcomp1) {
-		Tach_Trigger(&tach2);
+		// Tach_Trigger(&tach2);
 	}else if (hcomp == &hcomp3){
 		Tach_Trigger(&tach3);
 	}
