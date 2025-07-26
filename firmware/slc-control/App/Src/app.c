@@ -1,4 +1,6 @@
 #include "app.h"
+#include "math.h"
+#include "str.h"
 #include "usbd_cdc_if.h"
 #include "oled.h"
 #include "display.h"
@@ -13,7 +15,6 @@
 #include "lps22hh.h"
 #include "qmc5883.h"
 #include "icm42688.h"
-#include "math.h"
 
 #define GPS_TO_USB
 #define USB_TO_GPS
@@ -79,8 +80,8 @@ static struct Button_Handle button3 = {.port = BTN3_GPIO_Port, .pin = BTN3_Pin};
 static struct Button_Handle button4 = {.port = BTN4_GPIO_Port, .pin = BTN4_Pin};
 static struct Button_Handle* buttons[4] = {&button1, &button2, &button3, &button4};
 /////////////////////////////////////////////////////////////////////////////////////////////
-static struct Gps_Handle gps = {.huart = &huart3, .hdma = &hdma_usart3_rx, .rxBufSize = 1000, .txBufSize = 1000};
 static struct Nmea_Handle nmea = {.intPin = PPS_Pin, .timepulse = 0.1f};
+static struct Gps_Handle gps = {.huart = &huart3, .hdma = &hdma_usart3_rx, .rxBufSize = 1000, .txBufSize = 1000};
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Lps22hh_Handle pressure = {.hspi = &hspi1, .csPort = CSP_GPIO_Port, .csPin = CSP_Pin, .intPin = DRDYP_Pin};
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -96,9 +97,8 @@ static struct Tach_Handle* tachs[3] = {&tach1, &tach2, &tach3};
 static struct Oled_Handle oled = {.hspi = &hspi2, .csPort = CSD_GPIO_Port, .csPin = CSD_Pin, .dcPort = DC_GPIO_Port, .dcPin = DC_Pin, .width = 128, .height = 64};
 static struct Display_Handle display;
 
-static uint8_t app_memory_reset(void) {
+static void app_memory_reset(void) {
     Memory_Reset(&memory);
-    return 1;
 }
 
 static uint8_t app_trigger_live() {
@@ -148,10 +148,55 @@ static uint8_t app_gps_live(void) {
 }
 
 static uint8_t app_pressure_live(void) {
+    Oled_Fill(&oled, Oled_ColorBlack);
+    //Oled_ClearRectangle(&oled, 44, 34, 86, 45);
+    Oled_SetCursor(&oled, 28, 16);
+    Oled_DrawString(&oled, "Kpa:", &Font_7x10);
+    const uint8_t len1 = Str_PrintFloat(display.charBuf, pressure.pressure, 1);
+    Oled_SetCursor(&oled, 98 - 7*len1, 16);
+    Oled_DrawString(&oled, display.charBuf, &Font_7x10);
+    
+    Oled_SetCursor(&oled, 28, 32);
+    Oled_DrawString(&oled, "Temp: ", &Font_7x10);
+    const uint8_t len2 = Str_PrintFloat(display.charBuf, pressure.temperature, 1);
+    Oled_SetCursor(&oled, 98 - 7*len2, 32);
+    Oled_DrawString(&oled, display.charBuf, &Font_7x10);
+
     return 1;
 }
 
 static uint8_t app_magnet_live(void) {
+    Oled_Fill(&oled, Oled_ColorBlack);
+    //Oled_ClearRectangle(&oled, 44, 34, 86, 45);
+    Oled_SetCursor(&oled, 56, 0);
+    Oled_DrawString(&oled, "X:", &Font_7x10);
+    const uint8_t len1 = Str_PrintFloat(display.charBuf, magnet.x, 3);
+    Oled_SetCursor(&oled, 119 - 7*len1, 0);
+    Oled_DrawString(&oled, display.charBuf, &Font_7x10);
+
+    Oled_SetCursor(&oled, 56, 16);
+    Oled_DrawString(&oled, "Y:", &Font_7x10);
+    const uint8_t len2 = Str_PrintFloat(display.charBuf, magnet.y, 3);
+    Oled_SetCursor(&oled, 119 - 7*len2, 16);
+    Oled_DrawString(&oled, display.charBuf, &Font_7x10);
+    
+    Oled_SetCursor(&oled, 56, 32);
+    Oled_DrawString(&oled, "Z:", &Font_7x10);
+    const uint8_t len3 = Str_PrintFloat(display.charBuf, magnet.z, 3);
+    Oled_SetCursor(&oled, 119 - 7*len3, 32);
+    Oled_DrawString(&oled, display.charBuf, &Font_7x10); 
+
+    Oled_SetCursor(&oled, 49, 48);
+    Oled_DrawString(&oled, "Temp: ", &Font_7x10);
+    const uint8_t len4 = Str_PrintFloat(display.charBuf, magnet.temperature, 1);
+    Oled_SetCursor(&oled, 119 - 7*len4, 48);
+    Oled_DrawString(&oled, display.charBuf, &Font_7x10);
+    
+    float dx = 16.0f * (float)cos(magnet.angle);
+    float dy = 16.0f * (float)sin(magnet.angle);
+    
+    Oled_DrawLine(&oled, 16, 32, 16 + (int16_t)dx, 32 + (int16_t)dy);
+
     return 1;
 }
 
@@ -258,9 +303,9 @@ static uint16_t app_rpm_max(uint16_t a, uint16_t b) {
 }
 
 void App_Init(void) {
-    // HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 2048);
-    // HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_2, DAC_ALIGN_12B_R, 2048);
-    // HAL_DAC_SetValue(&hdac3, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 2048);
+    HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 2048);
+    //HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_2, DAC_ALIGN_12B_R, 2048);
+    //HAL_DAC_SetValue(&hdac3, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 2048);
 
     Oled_Init(&oled);
     // eeprom has no init
@@ -270,22 +315,22 @@ void App_Init(void) {
     Button_Init(&button3);
     Button_Init(&button4);
     
-    // Gps_Init(&gps);
-    // Nmea_Init(&nmea);
-    // Lps22hh_Init(&pressure);
-    // Qmc5883_Init(&magnet);
-    // Icm42688_Init(&imu);
-    // Tach_Init(&tach1);
+    Nmea_Init(&nmea);
+    Gps_Init(&gps);
+    Lps22hh_Init(&pressure);
+    Qmc5883_Init(&magnet);
+    Icm42688_Init(&imu);
+    Tach_Init(&tach1);
     // Tach_Init(&tach2);
     // Tach_Init(&tach3);
     Display_Init(&display);
 
-    // HAL_COMP_Start(&hcomp1);
-    // HAL_COMP_Start(&hcomp2);
+    HAL_COMP_Start(&hcomp1);
+    //HAL_COMP_Start(&hcomp2);
     //HAL_COMP_Start(&hcomp3);
 
-    //HAL_TIM_Base_Start_IT(&htim1);
-    //HAL_TIM_Base_Start_IT(&htim2);
+    HAL_TIM_Base_Start_IT(&htim1);
+    HAL_TIM_Base_Start_IT(&htim2);
     HAL_TIM_Base_Start_IT(&htim3);
     //HAL_TIM_Base_Start_IT(&htim17);
 }
@@ -329,19 +374,19 @@ void App_Update(void) {
 
 void App_UsbHandler(uint8_t* data, uint32_t len) {
 #ifdef USB_TO_GPS
-    // Gps_Transmit(&gps, data, len);
+    Gps_Transmit(&gps, data, len);
 #endif
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     if (htim == &htim1) {
-        // Tach_Count(&tach1);
-        // Tach_Count(&tach2);
-        // Tach_Count(&tach3);
+        Tach_Count(&tach1);
+        Tach_Count(&tach2);
+        Tach_Count(&tach3);
     } else if (htim == &htim2) {
-        // Tach_Update(&tach1);
-        // Tach_Update(&tach2);
-        // Tach_Update(&tach3);
+        Tach_Update(&tach1);
+        Tach_Update(&tach2);
+        Tach_Update(&tach3);
     } else if (htim == &htim3) {
         Button_Update(&button1);
         Button_Update(&button2);
@@ -354,32 +399,32 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
     if (Nmea_ExtFlag(&nmea, GPIO_Pin)) {
-//      Nmea_ExtHandler(&nmea);
+        //Nmea_ExtHandler(&nmea);
     } else if (Lps22hh_ExtFlag(&pressure, GPIO_Pin)) {
-        // Lps22hh_ExtHandler(&pressure);
+        Lps22hh_ExtHandler(&pressure);
     } else if (Qmc5883_ExtFlag(&magnet, GPIO_Pin)) {
-        // Qmc5883_ExtHandler(&magnet);
+        Qmc5883_ExtHandler(&magnet);
     } else if (Icm42688_ExtFlag(&imu, GPIO_Pin)) {
-        // Icm42688_ExtHandler(&imu);
+        Icm42688_ExtHandler(&imu);
     }
 }
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
     if (Gps_UartFlag(&gps, huart)) {
-        // Gps_UartHandler(&gps, size);
+        Gps_UartHandler(&gps, size);
 #ifdef GPS_TO_USB
-        // CDC_Transmit_FS(gps.readBuf, size);
+        CDC_Transmit_FS(gps.readBuf, size);
 #endif
-        // Nmea_Parse(&nmea, gps.readBuf, size);
+        Nmea_Parse(&nmea, gps.readBuf, size);
     }
 }
 
 void HAL_COMP_TriggerCallback(COMP_HandleTypeDef *hcomp) {
     if (hcomp == &hcomp2) {
-        // Tach_Trigger(&tach1);
+        Tach_Trigger(&tach1);
     } else if (hcomp == &hcomp1) {
-        // Tach_Trigger(&tach2);
+        Tach_Trigger(&tach2);
     } else if (hcomp == &hcomp3){
-        // Tach_Trigger(&tach3);
+        Tach_Trigger(&tach3);
     }
 }
