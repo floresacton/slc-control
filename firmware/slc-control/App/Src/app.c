@@ -28,8 +28,8 @@ extern I2C_HandleTypeDef hi2c2;
 extern SPI_HandleTypeDef hspi1;
 extern SPI_HandleTypeDef hspi2;
 
-extern TIM_HandleTypeDef htim1; // 50khz tach count
-extern TIM_HandleTypeDef htim2; // 50hz tach update
+extern TIM_HandleTypeDef htim1; // 50khz tach tick
+extern TIM_HandleTypeDef htim2; // 10hz tach update
 extern TIM_HandleTypeDef htim3; // 50hz button update
 extern TIM_HandleTypeDef htim17; // replicator
 
@@ -43,36 +43,43 @@ extern COMP_HandleTypeDef hcomp3;
 static float slip = 0;
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Memory_Variable var_active = {.reset = 0.0f};
-static struct Memory_Variable var_trigger_prim = {.min = 0.0f, .max = 100.0f, .reset = 15.0f, .minDigit = -1};
-static struct Memory_Variable var_trigger_aux = {.min = 0.0f, .max = 10000.0f, .reset = 1000.0f, .minDigit = 0};
-static struct Memory_Variable var_trigger_min = {.min = 0.0f, .max = 500.0f, .reset = 10.0f, .minDigit = 0};
+// percent slip trigger
+static struct Memory_Variable var_trigger_prim = {.min = 0.0f, .max = 100.0f, .reset = 10.0f, .decimals = 1};
+// minimumm rear wheel speed to trigger
+static struct Memory_Variable var_trigger_min = {.min = 0.0f, .max = 500.0f, .reset = 10.0f, .decimals = 0};
+// rear wheel speed trigger aux
+static struct Memory_Variable var_trigger_aux = {.min = 0.0f, .max = 500.0f, .reset = 100.0f, .decimals = 0};
 
-static struct Memory_Variable var_sensor1_scale = {.min = 1.0f, .max = 80.0f, .reset = 30.0f, .minDigit = 0};
-static struct Memory_Variable var_sensor1_max = {.min = 1.0f, .max = 50000.0f, .reset = 10000.0f, .minDigit = 0};
+static struct Memory_Variable var_sensor1_pulses = {.min = 1.0f, .max = 100.0f, .reset = 30.0f, .decimals = 0};
+static struct Memory_Variable var_sensor1_circ = {.min = 0.0f, .max = 5000.0f, .reset = 2000.0f, .decimals = 0};
+static struct Memory_Variable var_sensor1_max = {.min = 0.0f, .max = 500.0f, .reset = 300.0f, .decimals = 0};
 
-static struct Memory_Variable var_sensor2_scale = {.min = 1.0f, .max = 80.0f, .reset = 30.0f, .minDigit = 0};
-static struct Memory_Variable var_sensor2_max = {.min = 1.0f, .max = 50000.0f, .reset = 10000.0f, .minDigit = 0};
+static struct Memory_Variable var_sensor2_pulses = {.min = 1.0f, .max = 100.0f, .reset = 30.0f, .decimals = 0};
+static struct Memory_Variable var_sensor2_circ = {.min = 0.0f, .max = 5000.0f, .reset = 2000.0f, .decimals = 0};
+static struct Memory_Variable var_sensor2_max = {.min = 0.0f, .max = 500.0f, .reset = 300.0f, .decimals = 0};
 
-static struct Memory_Variable var_sensor3_scale = {.min = 1.0f, .max = 80.0f, .reset = 30.0f, .minDigit = 0};
-static struct Memory_Variable var_sensor3_max = {.min = 1.0f, .max = 50000.0f, .reset = 10000.0f, .minDigit = 0};
-
-static struct Memory_Variable var_gps_circ = {.min = 1.0f, .max = 200.0f, .reset = 120.0f, .minDigit = -1};
+static struct Memory_Variable var_sensor3_pulses = {.min = 1.0f, .max = 100.0f, .reset = 30.0f, .decimals = 0};
+static struct Memory_Variable var_sensor3_circ = {.min = 0.0f, .max = 5000.0f, .reset = 2000.0f, .decimals = 0};
+static struct Memory_Variable var_sensor3_max = {.min = 0.0f, .max = 500.0f, .reset = 300.0f, .decimals = 0};
 /////////////////////////////////////////////////////////////////////////////////////////////
-static struct Memory_Variable* memory_vars[11] = {
+static struct Memory_Variable* memory_vars[13] = {
         &var_active,
         &var_trigger_prim,
-        &var_trigger_aux,
         &var_trigger_min,
-        &var_sensor1_scale,
+        &var_trigger_aux,
+        &var_sensor1_pulses,
+        &var_sensor1_circ,
         &var_sensor1_max,
-        &var_sensor2_scale,
+        &var_sensor2_pulses,
+        &var_sensor2_circ,
         &var_sensor2_max,
-        &var_sensor3_scale,
-        &var_sensor1_max,
+        &var_sensor3_pulses,
+        &var_sensor3_circ,
+        &var_sensor3_max,
 };
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Eeprom_Handle eeprom = {.hi2c = &hi2c1, .address = 0xA0, .pages = 512, .pageSize = 64};
-static struct Memory_Handle memory = {.eeprom = &eeprom, .hash = 49, .vars = memory_vars, .count = 11};
+static struct Memory_Handle memory = {.eeprom = &eeprom, .hash = 49, .vars = memory_vars, .count = 13};
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Button_Handle button1 = {.port = BTN1_GPIO_Port, .pin = BTN1_Pin};
 static struct Button_Handle button2 = {.port = BTN2_GPIO_Port, .pin = BTN2_Pin};
@@ -89,9 +96,9 @@ static struct Qmc5883_Handle magnet = {.hi2c = &hi2c2, .intPin = DRDYM_Pin, .rea
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Icm42688_Handle imu = {.hspi = &hspi1, .csPort = CSG_GPIO_Port, .csPin = CSG_Pin, .intPin = INTG_Pin};
 /////////////////////////////////////////////////////////////////////////////////////////////
-static struct Tach_Handle tach1 = {.countFreq = 50000, .spokes = 3, .maxRpm = 7000};
-static struct Tach_Handle tach2 = {.countFreq = 50000, .spokes = 3, .maxRpm = 7000};
-static struct Tach_Handle tach3 = {.countFreq = 50000, .spokes = 3, .maxRpm = 7000};
+static struct Tach_Handle tach1 = {.tick_freq = 50000, .ppr = 3, .max_rpm = 5000};
+static struct Tach_Handle tach2 = {.tick_freq = 50000, .ppr = 3, .max_rpm = 5000};
+static struct Tach_Handle tach3 = {.tick_freq = 50000, .ppr = 3, .max_rpm = 5000};
 static struct Tach_Handle* tachs[3] = {&tach1, &tach2, &tach3};
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Oled_Handle oled = {.hspi = &hspi2, .csPort = CSD_GPIO_Port, .csPin = CSD_Pin, .dcPort = DC_GPIO_Port, .dcPin = DC_Pin, .width = 128, .height = 64};
@@ -212,53 +219,65 @@ static uint8_t app_home_live(void) {
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Display_Screen trigger_live = {.update = &app_trigger_live};
 static struct Display_Screen trigger_prim = {.var = &var_trigger_prim};
-static struct Display_Screen trigger_aux = {.var = &var_trigger_aux};
 static struct Display_Screen trigger_min = {.var = &var_trigger_min};
+static struct Display_Screen trigger_aux = {.var = &var_trigger_aux};
 static struct Display_Option trigger_options[4] = {
         {.text = "Live", .redirect = &trigger_live},
         {.text = "Primary", .redirect = &trigger_prim},
-        {.text = "Auxiliary", .redirect = &trigger_aux},
         {.text = "Minimum", .redirect = &trigger_min},
+        {.text = "Auxilary", .redirect = &trigger_aux},
 };
 static struct Display_Screen trigger_screen = {.optionCount = 4, .options = trigger_options};
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Display_Screen sensor1_live = {.update = &app_sensor1_live};
-static struct Display_Screen sensor1_scale = {.var = &var_sensor1_scale};
+static struct Display_Screen sensor1_pulses = {.var = &var_sensor1_pulses};
+static struct Display_Screen sensor1_circ = {.var = &var_sensor1_circ};
 static struct Display_Screen sensor1_max = {.var = &var_sensor1_max};
-static struct Display_Option sensor1_options[3] = {
+static struct Display_Option sensor1_options[4] = {
         {.text = "Live", .redirect = &sensor1_live},
-        {.text = "Scale", .redirect = &sensor1_scale},
-        {.text = "Maximum", .redirect = &sensor1_max},
+        {.text = "Pulses", .redirect = &sensor1_pulses},
+        {.text = "Circ MM", .redirect = &sensor1_circ},
+        {.text = "Max RPM", .redirect = &sensor1_max},
 };
-static struct Display_Screen sensor1_screen = {.optionCount = 3, .options = sensor1_options};
+static struct Display_Screen sensor1_screen = {.optionCount = 4, .options = sensor1_options};
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Display_Screen sensor2_live = {.update = &app_sensor2_live};
-static struct Display_Screen sensor2_scale = {.var = &var_sensor2_scale};
+static struct Display_Screen sensor2_pulses = {.var = &var_sensor2_pulses};
+static struct Display_Screen sensor2_circ = {.var = &var_sensor2_circ};
 static struct Display_Screen sensor2_max = {.var = &var_sensor2_max};
-static struct Display_Option sensor2_options[3] = {
+static struct Display_Option sensor2_options[4] = {
         {.text = "Live", .redirect = &sensor2_live},
-        {.text = "Scale", .redirect = &sensor2_scale},
-        {.text = "Maximum", .redirect = &sensor2_max},
+        {.text = "Pulses", .redirect = &sensor2_pulses},
+        {.text = "Circ MM", .redirect = &sensor2_circ},
+        {.text = "Max RPM", .redirect = &sensor2_max},
 };
-static struct Display_Screen sensor2_screen = {.optionCount = 3, .options = sensor2_options};
+static struct Display_Screen sensor2_screen = {.optionCount = 4, .options = sensor2_options};
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Display_Screen sensor3_live = {.update = &app_sensor3_live};
-static struct Display_Screen sensor3_scale = {.var = &var_sensor3_scale};
+static struct Display_Screen sensor3_pulses = {.var = &var_sensor3_pulses};
+static struct Display_Screen sensor3_circ = {.var = &var_sensor3_circ};
 static struct Display_Screen sensor3_max = {.var = &var_sensor3_max};
-static struct Display_Option sensor3_options[3] = {
+static struct Display_Option sensor3_options[4] = {
         {.text = "Live", .redirect = &sensor3_live},
-        {.text = "Scale", .redirect = &sensor3_scale},
-        {.text = "Maximum", .redirect = &sensor3_max},
+        {.text = "Pulses", .redirect = &sensor3_pulses},
+        {.text = "Circ MM", .redirect = &sensor3_circ},
+        {.text = "Max RPM", .redirect = &sensor3_max},
 };
-static struct Display_Screen sensor3_screen = {.optionCount = 3, .options = sensor3_options};
+static struct Display_Screen sensor3_screen = {.optionCount = 4, .options = sensor3_options};
+/////////////////////////////////////////////////////////////////////////////////////////////
+/*
+static struct Display_Screen replicator_value = {};
+static struct Display_Option replicator_options[0] = {
+        {.text = "Value", .redirect = &replicator_value},
+};
+static struct Display_Screen replicator_screen = {.optionCount = 0, .options = replicator_options};
+*/
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Display_Screen gps_live = {.update = &app_gps_live};
-static struct Display_Screen gps_circ = {.var = &var_gps_circ};
-static struct Display_Option gps_options[2] = {
-        {.text = "Live", .redirect = &gps_live},
-        {.text = "Circumference", .redirect = &gps_circ},
-};
-static struct Display_Screen gps_screen = {.optionCount = 2, .options = gps_options};
+//static struct Display_Option gps_options[1] = {
+//        {.text = "Live", .redirect = &gps_live},
+//};
+//static struct Display_Screen gps_screen = {.optionCount = 2, .options = gps_options};
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Display_Screen pressure_screen = {.update = &app_pressure_live};
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -266,19 +285,20 @@ static struct Display_Screen magnet_screen = {.update = &app_magnet_live};
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Display_Screen imu_screen = {.update = &app_imu_live};
 /////////////////////////////////////////////////////////////////////////////////////////////
-static struct Display_Option menu_options[10] = {
-        {.text = "Enable", .var = &var_active},
-        {.text = "Trigger", .redirect = &trigger_screen},
+static struct Display_Option menu_options[4] = {
+//        {.text = "Enable", .var = &var_active},
+//        {.text = "Trigger", .redirect = &trigger_screen},
         {.text = "Sensor1", .redirect = &sensor1_screen},
         {.text = "Sensor2", .redirect = &sensor2_screen},
         {.text = "Sensor3", .redirect = &sensor3_screen},
-        {.text = "GPS", .redirect = &gps_screen},
-        {.text = "Pressure", .redirect = &pressure_screen},
-        {.text = "Magnometer", .redirect = &magnet_screen},
-        {.text = "Accel/Gyro", .redirect = &imu_screen},
+//        {.text = "GPS", .redirect = &gps_live},
+//        {.text = "Repicator", .redirect = &replicator_screen},
+//        {.text = "Pressure", .redirect = &pressure_screen},
+//        {.text = "Magnometer", .redirect = &magnet_screen},
+//        {.text = "Accel/Gyro", .redirect = &imu_screen},
         {.text = "Reset", .action = &app_memory_reset},
 };
-static struct Display_Screen menu_screen = {.optionCount = 10, .options = menu_options};
+static struct Display_Screen menu_screen = {.optionCount = 4, .options = menu_options};
 static struct Display_Screen home_screen = {.update = &app_home_live, .redirect = &menu_screen};
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Display_Handle display = {.oled = &oled, .buttons = buttons, .memory = &memory, .top = &home_screen, .depth = 4, .chars = 12};
@@ -304,8 +324,8 @@ static uint16_t app_rpm_max(uint16_t a, uint16_t b) {
 
 void App_Init(void) {
     HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 2048);
-    //HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_2, DAC_ALIGN_12B_R, 2048);
-    //HAL_DAC_SetValue(&hdac3, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 2048);
+    HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_2, DAC_ALIGN_12B_R, 2048);
+    HAL_DAC_SetValue(&hdac3, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 2048);
 
     Oled_Init(&oled);
     // eeprom has no init
@@ -315,19 +335,19 @@ void App_Init(void) {
     Button_Init(&button3);
     Button_Init(&button4);
     
-    Nmea_Init(&nmea);
-    Gps_Init(&gps);
-    Lps22hh_Init(&pressure);
-    Qmc5883_Init(&magnet);
-    Icm42688_Init(&imu);
+    //Nmea_Init(&nmea);
+    //Gps_Init(&gps);
+    //Lps22hh_Init(&pressure);
+    //Qmc5883_Init(&magnet);
+    //Icm42688_Init(&imu);
     Tach_Init(&tach1);
-    // Tach_Init(&tach2);
-    // Tach_Init(&tach3);
+    Tach_Init(&tach2);
+    Tach_Init(&tach3);
     Display_Init(&display);
 
     HAL_COMP_Start(&hcomp1);
-    //HAL_COMP_Start(&hcomp2);
-    //HAL_COMP_Start(&hcomp3);
+    HAL_COMP_Start(&hcomp2);
+    HAL_COMP_Start(&hcomp3);
 
     HAL_TIM_Base_Start_IT(&htim1);
     HAL_TIM_Base_Start_IT(&htim2);
@@ -380,9 +400,9 @@ void App_UsbHandler(uint8_t* data, uint32_t len) {
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     if (htim == &htim1) {
-        Tach_Count(&tach1);
-        Tach_Count(&tach2);
-        Tach_Count(&tach3);
+        Tach_Tick(&tach1);
+        Tach_Tick(&tach2);
+        Tach_Tick(&tach3);
     } else if (htim == &htim2) {
         Tach_Update(&tach1);
         Tach_Update(&tach2);
@@ -421,10 +441,10 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
 
 void HAL_COMP_TriggerCallback(COMP_HandleTypeDef *hcomp) {
     if (hcomp == &hcomp2) {
-        Tach_Trigger(&tach1);
+        Tach_Pulse(&tach1);
     } else if (hcomp == &hcomp1) {
-        Tach_Trigger(&tach2);
+        Tach_Pulse(&tach2);
     } else if (hcomp == &hcomp3){
-        Tach_Trigger(&tach3);
+        Tach_Pulse(&tach3);
     }
 }
