@@ -44,7 +44,7 @@ static float slip = 0;
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Memory_Variable var_active = {.reset = 0.0f};
 // percent slip trigger
-static struct Memory_Variable var_trigger_prim = {.min = 0.0f, .max = 100.0f, .reset = 10.0f, .decimals = 1};
+static struct Memory_Variable var_trigger_prim = {.min = 0.0f, .max = 100.0f, .reset = 10.0f, .decimals = 0};
 // minimumm rear wheel speed to trigger
 static struct Memory_Variable var_trigger_min = {.min = 0.0f, .max = 500.0f, .reset = 10.0f, .decimals = 0};
 // rear wheel speed trigger aux
@@ -96,9 +96,9 @@ static struct Qmc5883_Handle magnet = {.hi2c = &hi2c2, .intPin = DRDYM_Pin, .rea
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Icm42688_Handle imu = {.hspi = &hspi1, .csPort = CSG_GPIO_Port, .csPin = CSG_Pin, .intPin = INTG_Pin};
 /////////////////////////////////////////////////////////////////////////////////////////////
-static struct Tach_Handle tach1 = {.tick_freq = 50000, .ppr = 3, .max_rpm = 5000};
-static struct Tach_Handle tach2 = {.tick_freq = 50000, .ppr = 3, .max_rpm = 5000};
-static struct Tach_Handle tach3 = {.tick_freq = 50000, .ppr = 3, .max_rpm = 5000};
+static struct Tach_Handle tach1 = {.tick_freq = 50000};
+static struct Tach_Handle tach2 = {.tick_freq = 50000};
+static struct Tach_Handle tach3 = {.tick_freq = 50000};
 static struct Tach_Handle* tachs[3] = {&tach1, &tach2, &tach3};
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Oled_Handle oled = {.hspi = &hspi2, .csPort = CSD_GPIO_Port, .csPin = CSD_Pin, .dcPort = DC_GPIO_Port, .dcPin = DC_Pin, .width = 128, .height = 64};
@@ -106,6 +106,20 @@ static struct Display_Handle display;
 
 static void app_memory_reset(void) {
     Memory_Reset(&memory);
+}
+
+static void app_values_update(void) {
+    const uint32_t mm_per_hour1 = (uint16_t)var_sensor1_max.value * 1609347;
+    tach1.ppr = var_sensor1_pulses.value;
+    tach1.max_rpm = mm_per_hour1 / ((uint32_t)var_sensor1_circ.value * 60);
+
+    const uint32_t mm_per_hour2 = (uint16_t)var_sensor2_max.value * 1609347;
+    tach2.ppr = var_sensor2_pulses.value;
+    tach2.max_rpm = mm_per_hour2 / ((uint32_t)var_sensor2_circ.value * 60);
+
+    const uint32_t mm_per_hour3 = (uint16_t)var_sensor3_max.value * 1609347;
+    tach3.ppr = var_sensor3_pulses.value;
+    tach3.max_rpm = mm_per_hour3 / ((uint32_t)var_sensor3_circ.value * 60);
 }
 
 static uint8_t app_trigger_live() {
@@ -120,7 +134,9 @@ static uint8_t app_trigger_live() {
 static uint8_t app_rpm_live(uint8_t chan) {
     Oled_ClearRectangle(&oled, 48, 34, 75, 44);
     Oled_SetCursor(&oled, 48, 34);
-    sprintf(display.charBuf, "%4d", tachs[chan]->rpm);
+    const uint32_t mm_per_hour = tachs[chan]->rpm * ((uint32_t)var_sensor3_circ.value * 60);
+    const uint16_t mph = mm_per_hour / 1609347; 
+    sprintf(display.charBuf, "%3d", mph);
     Oled_DrawString(&oled, display.charBuf, &Font_7x10);
     return 1;
 }
@@ -237,7 +253,7 @@ static struct Display_Option sensor1_options[4] = {
         {.text = "Live", .redirect = &sensor1_live},
         {.text = "Pulses", .redirect = &sensor1_pulses},
         {.text = "Circ MM", .redirect = &sensor1_circ},
-        {.text = "Max RPM", .redirect = &sensor1_max},
+        {.text = "Max MPH", .redirect = &sensor1_max},
 };
 static struct Display_Screen sensor1_screen = {.optionCount = 4, .options = sensor1_options};
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -249,7 +265,7 @@ static struct Display_Option sensor2_options[4] = {
         {.text = "Live", .redirect = &sensor2_live},
         {.text = "Pulses", .redirect = &sensor2_pulses},
         {.text = "Circ MM", .redirect = &sensor2_circ},
-        {.text = "Max RPM", .redirect = &sensor2_max},
+        {.text = "Max MPH", .redirect = &sensor2_max},
 };
 static struct Display_Screen sensor2_screen = {.optionCount = 4, .options = sensor2_options};
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -261,7 +277,7 @@ static struct Display_Option sensor3_options[4] = {
         {.text = "Live", .redirect = &sensor3_live},
         {.text = "Pulses", .redirect = &sensor3_pulses},
         {.text = "Circ MM", .redirect = &sensor3_circ},
-        {.text = "Max RPM", .redirect = &sensor3_max},
+        {.text = "Max MPH", .redirect = &sensor3_max},
 };
 static struct Display_Screen sensor3_screen = {.optionCount = 4, .options = sensor3_options};
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -301,7 +317,7 @@ static struct Display_Option menu_options[4] = {
 static struct Display_Screen menu_screen = {.optionCount = 4, .options = menu_options};
 static struct Display_Screen home_screen = {.update = &app_home_live, .redirect = &menu_screen};
 /////////////////////////////////////////////////////////////////////////////////////////////
-static struct Display_Handle display = {.oled = &oled, .buttons = buttons, .memory = &memory, .top = &home_screen, .depth = 4, .chars = 12};
+static struct Display_Handle display = {.oled = &oled, .buttons = buttons, .memory = &memory, .top = &home_screen, .depth = 4, .chars = 12, .values_update = &app_values_update};
 
 //12, 12.5, 3.6
 //static struct Vector3f mag_bias = {.x = 1400.0f, .y = 1500.0f, .z = 430.0f};
@@ -340,9 +356,13 @@ void App_Init(void) {
     //Lps22hh_Init(&pressure);
     //Qmc5883_Init(&magnet);
     //Icm42688_Init(&imu);
+
+    app_values_update();
+
     Tach_Init(&tach1);
     Tach_Init(&tach2);
     Tach_Init(&tach3);
+
     Display_Init(&display);
 
     HAL_COMP_Start(&hcomp1);
