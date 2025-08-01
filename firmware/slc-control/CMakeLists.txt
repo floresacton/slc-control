@@ -40,25 +40,6 @@ add_executable(${CMAKE_PROJECT_NAME})
 # Add STM32CubeMX generated sources
 add_subdirectory(cmake/stm32cubemx)
 
-set(LIB_COMPS
-    OLED
-    DISPLAY
-    BITMAP
-    FONT
-    EEPROM
-    MEMORY
-    BUTTON
-    GPS
-    NMEA
-    TACH
-    LPS22HH
-    QMC5883
-    ICM42688
-    STR
-)
-
-add_subdirectory(/home/mfact/Projects/stm-lib "${CMAKE_CURRENT_BINARY_DIR}/stm-lib")
-
 # Link directories setup
 target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined library search paths
@@ -85,7 +66,6 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
 # Add linked libraries
 target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
-    stm_lib
     # Add user defined libraries
 )
 

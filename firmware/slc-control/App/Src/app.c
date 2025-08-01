@@ -228,6 +228,12 @@ static uint8_t app_imu_live(void) {
 }
 
 static uint8_t app_home_live(void) {
+    // time (top hh:mm)
+    // gps speed
+    // g accel
+    // pressure
+    // temperature
+    // altitude
     Oled_SetCursor(&oled, 20, 16);
     Oled_DrawString(&oled, "homescreen", &Font_7x10);
     return 1;
