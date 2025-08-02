@@ -13,6 +13,7 @@ struct Font {
     const uint8_t *data;
 };
 
+extern const struct Font Font_14x20;
 extern const struct Font Font_7x10;
 extern const struct Font Font_6x8;
 

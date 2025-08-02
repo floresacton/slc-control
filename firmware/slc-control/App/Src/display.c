@@ -22,9 +22,9 @@ static void display_update_cursor(struct Display_Handle* handle) {
 
 static void display_update_options(struct Display_Handle* handle) {
     for (uint8_t i = 0; i < 3; i++) {
-        Oled_ClearRectangle(handle->oled, 20, 16 * (i + 1), 122, 16 * (i + 1) + 16);
+        Oled_ClearRectangle(handle->oled, 21, 16 * (i + 1), 122, 16 * (i + 1) + 16);
         if (i < handle->current->optionCount) {
-            Oled_SetCursor(handle->oled, 20, 16 * (i + 1) + 6);
+            Oled_SetCursor(handle->oled, 21, 16 * (i + 1) + 6);
             Oled_DrawString(handle->oled, handle->current->options[handle->current->scroll+i].text, &Font_7x10);
             if (handle->current->options[handle->current->scroll+i].var) {
                 if (handle->current->options[handle->current->scroll+i].var->value) {
@@ -51,26 +51,31 @@ static void display_update_options(struct Display_Handle* handle) {
 
 static void display_update_edit(struct Display_Handle* handle) {
     Oled_ClearRectangle(handle->oled, 44, 31, 88, 33);
-    Oled_DrawBitmap(handle->oled, 72-7*handle->editDigit, 31, Bitmap_Edit, 7, 2);
+    Oled_DrawBitmap(handle->oled, 72 - 7 * handle->editDigit, 31, Bitmap_Edit, 7, 2);
 }
 
 static void display_update_variable(struct Display_Handle* handle) {
     Oled_ClearRectangle(handle->oled, 44, 34, 86, 44);
-    Oled_SetCursor(handle->oled, 44, 34);
-    Memory_Print(handle->charBuf, handle->current->var);
+
+    const uint8_t len = Memory_Print(handle->charBuf, handle->current->var);
+    
+    Oled_SetCursor(handle->oled, 79 - 7*len, 34);
     Oled_DrawString(handle->oled, handle->charBuf, &Font_7x10);
+
 }
 
 static void display_init_screen(struct Display_Handle* handle) {
     handle->current = handle->stack[handle->stackIndex];
     Oled_Fill(handle->oled, Oled_ColorBlack);
     if (handle->current->optionCount) {
+        Oled_DrawBitmap(handle->oled, 14, 0, Bitmap_Logo, 89, 16);
+
         display_update_options(handle);
         display_update_cursor(handle);
     } else if (handle->current->var) {
         handle->editDigit = 0;
         handle->editValue = 1;
-
+        //draw decimal if applicaple
         display_update_edit(handle);
         display_update_variable(handle);
     } else if (handle->current->update) {

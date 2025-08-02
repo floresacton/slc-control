@@ -8,11 +8,11 @@ uint8_t Str_Equal(char* str1, char* str2, const uint8_t len);
 
 //returns the char* at found character
 //or end if not found
-char* Str_To(char* msg, char* end, char delim);
+uint8_t Str_To(char* str, uint8_t len, char delim);
 
-uint8_t Str_ParseByte(char* msg, char* end);
-float Str_ParseFloat(char* msg, char* end);
+uint8_t Str_ParseByte(char* str, uint8_t len);
+float Str_ParseFloat(char* str, uint8_t len);
 
-uint8_t Str_PrintFloat(char* buf, float val, uint8_t decimals);
+void Str_PrintFloat(char* buf, uint8_t len, uint8_t decimals, uint8_t zeros, float val);
 
 #endif

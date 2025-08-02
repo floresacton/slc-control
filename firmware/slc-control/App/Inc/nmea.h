@@ -39,6 +39,7 @@ struct Nmea_Handle {
     char latHem;
     float longitude;
     char lonHem;
+
     float altitude;
 
     float speed;
@@ -46,7 +47,7 @@ struct Nmea_Handle {
 
 void Nmea_Init(struct Nmea_Handle* handle);
 
-void Nmea_Parse(struct Nmea_Handle* handle, uint8_t* data, uint16_t len);
+void Nmea_Parse(struct Nmea_Handle* handle, char* data, uint16_t len);
 
 uint8_t Nmea_ExtFlag(struct Nmea_Handle* handle, uint16_t pin);
 void Nmea_ExtHandler(struct Nmea_Handle* handle);

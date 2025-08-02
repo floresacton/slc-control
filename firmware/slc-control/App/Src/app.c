@@ -40,25 +40,24 @@ extern COMP_HandleTypeDef hcomp1;
 extern COMP_HandleTypeDef hcomp2;
 extern COMP_HandleTypeDef hcomp3;
 
-static float slip = 0;
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Memory_Variable var_active = {.reset = 0.0f};
 // percent slip trigger
-static struct Memory_Variable var_trigger_prim = {.min = 0.0f, .max = 100.0f, .reset = 10.0f, .decimals = 0};
+static struct Memory_Variable var_trigger_prim = {.min = 0.0f, .max = 99.9f, .reset = 10.0f, .decimals = 0};
 // minimumm rear wheel speed to trigger
 static struct Memory_Variable var_trigger_min = {.min = 0.0f, .max = 500.0f, .reset = 10.0f, .decimals = 0};
 // rear wheel speed trigger aux
 static struct Memory_Variable var_trigger_aux = {.min = 0.0f, .max = 500.0f, .reset = 100.0f, .decimals = 0};
 
-static struct Memory_Variable var_sensor1_pulses = {.min = 1.0f, .max = 100.0f, .reset = 30.0f, .decimals = 0};
+static struct Memory_Variable var_sensor1_pulses = {.min = 1.0f, .max = 99.0f, .reset = 30.0f, .decimals = 0};
 static struct Memory_Variable var_sensor1_circ = {.min = 0.0f, .max = 5000.0f, .reset = 2000.0f, .decimals = 0};
 static struct Memory_Variable var_sensor1_max = {.min = 0.0f, .max = 500.0f, .reset = 300.0f, .decimals = 0};
 
-static struct Memory_Variable var_sensor2_pulses = {.min = 1.0f, .max = 100.0f, .reset = 30.0f, .decimals = 0};
+static struct Memory_Variable var_sensor2_pulses = {.min = 1.0f, .max = 99.0f, .reset = 30.0f, .decimals = 0};
 static struct Memory_Variable var_sensor2_circ = {.min = 0.0f, .max = 5000.0f, .reset = 2000.0f, .decimals = 0};
 static struct Memory_Variable var_sensor2_max = {.min = 0.0f, .max = 500.0f, .reset = 300.0f, .decimals = 0};
 
-static struct Memory_Variable var_sensor3_pulses = {.min = 1.0f, .max = 100.0f, .reset = 30.0f, .decimals = 0};
+static struct Memory_Variable var_sensor3_pulses = {.min = 1.0f, .max = 99.0f, .reset = 30.0f, .decimals = 0};
 static struct Memory_Variable var_sensor3_circ = {.min = 0.0f, .max = 5000.0f, .reset = 2000.0f, .decimals = 0};
 static struct Memory_Variable var_sensor3_max = {.min = 0.0f, .max = 500.0f, .reset = 300.0f, .decimals = 0};
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -123,49 +122,84 @@ static void app_values_update(void) {
 }
 
 static uint8_t app_trigger_live() {
+    /*
     Oled_ClearRectangle(&oled, 44, 34, 86, 45);
     Oled_SetCursor(&oled, 51, 34);
 //  sprintf(display.charBuf, "%06.0f", Control_Slip()*1000.0);
     Oled_DrawString(&oled, display.charBuf, &Font_7x10);
     Oled_DrawBitmap(&oled, 70, 42, Bitmap_Decimal, 3, 3);
+    */
     return 1;
 }
 
-static uint8_t app_rpm_live(uint8_t chan) {
+static uint8_t app_sensor_live(uint8_t chan) {
+    // TODO
     Oled_ClearRectangle(&oled, 48, 34, 75, 44);
-    Oled_SetCursor(&oled, 48, 34);
+    
+    const uint16_t rpm = tachs[chan]->rpm;
+    sprintf(display.charBuf, "RPM: %4d", rpm);
+    Oled_SetCursor(&oled, 32, 20);
+    Oled_DrawString(&oled, display.charBuf, &Font_7x10);
+    
     const uint32_t mm_per_hour = tachs[chan]->rpm * ((uint32_t)var_sensor3_circ.value * 60);
     const uint16_t mph = mm_per_hour / 1609347; 
-    sprintf(display.charBuf, "%3d", mph);
+    sprintf(display.charBuf, "MPH:  %3d", mph);
+    Oled_SetCursor(&oled, 32, 36);
     Oled_DrawString(&oled, display.charBuf, &Font_7x10);
+    
     return 1;
 }
 
 static uint8_t app_sensor1_live(void) {
-    app_rpm_live(0);
-    return 1;
+    return app_sensor_live(0);
 }
 
 static uint8_t app_sensor2_live(void) {
-    app_rpm_live(1);
-    return 1;
+    return app_sensor_live(1);
 }
 
 static uint8_t app_sensor3_live(void) {
-    app_rpm_live(2);
-    return 1;
+    return app_sensor_live(2);
 }
 
 static uint8_t app_gps_live(void) {
-    Oled_ClearRectangle(&oled, 44, 34, 86, 45);
+    Oled_Fill(&oled, Oled_ColorBlack);
+    
+    Oled_SetCursor(&oled, 0, 0);
+    Oled_DrawString(&oled, nmea.fix ? "FIX" : "NO FIX", &Font_7x10);
+
+    sprintf(display.charBuf, "%2dSAT", nmea.satCount);
+    Oled_SetCursor(&oled, 91, 0);
+    Oled_DrawString(&oled, display.charBuf, &Font_7x10);
+    
+    sprintf(display.charBuf, "%02d/%02d/%02d", nmea.month, nmea.day, nmea.year);
+    Oled_SetCursor(&oled, 0, 16);
+    Oled_DrawString(&oled, display.charBuf, &Font_7x10);
+
+    sprintf(display.charBuf, "%02d:%02d:%02d", nmea.hour, nmea.minute, (uint16_t)nmea.second);
+    Oled_SetCursor(&oled, 70, 16);
+    Oled_DrawString(&oled, display.charBuf, &Font_7x10);
+
     if (nmea.fix) {
-        Oled_SetCursor(&oled, 51, 34);
-        sprintf(display.charBuf, "%4.0f", nmea.speed*10.0);
+        Str_PrintFloat(display.charBuf, 7, 5, 0, nmea.latitude);
+        Oled_SetCursor(&oled, 0, 32);
         Oled_DrawString(&oled, display.charBuf, &Font_7x10);
-        Oled_DrawBitmap(&oled, 70, 42, Bitmap_Decimal, 3, 3);
-    }else{
-        Oled_SetCursor(&oled, 43, 34);
-        Oled_DrawString(&oled, "No Fix", &Font_7x10);
+        Oled_DrawChar(&oled, nmea.latHem, &Font_7x10);
+        Oled_DrawBitmap(&oled, 12, 39, Bitmap_Decimal, 3, 3);
+
+        Str_PrintFloat(display.charBuf, 8, 5, false, nmea.longitude);
+        Oled_SetCursor(&oled, 63, 32);
+        Oled_DrawString(&oled, display.charBuf, &Font_7x10);
+        Oled_DrawChar(&oled, nmea.lonHem, &Font_7x10);
+        Oled_DrawBitmap(&oled, 82, 39, Bitmap_Decimal, 3, 3);
+
+        sprintf(display.charBuf, "%4dM", (uint16_t)nmea.altitude);
+        Oled_SetCursor(&oled, 0, 48);
+        Oled_DrawString(&oled, display.charBuf, &Font_7x10);
+        
+        sprintf(display.charBuf, "%3dMPH", (uint16_t)nmea.speed);
+        Oled_SetCursor(&oled, 84, 48);
+        Oled_DrawString(&oled, display.charBuf, &Font_7x10);
     }
     return 1;
 }
@@ -175,20 +209,23 @@ static uint8_t app_pressure_live(void) {
     //Oled_ClearRectangle(&oled, 44, 34, 86, 45);
     Oled_SetCursor(&oled, 28, 16);
     Oled_DrawString(&oled, "Kpa:", &Font_7x10);
-    const uint8_t len1 = Str_PrintFloat(display.charBuf, pressure.pressure, 1);
-    Oled_SetCursor(&oled, 98 - 7*len1, 16);
+
+    Str_PrintFloat(display.charBuf, 4, 1, false, pressure.pressure);
+    Oled_SetCursor(&oled, 70, 16);
     Oled_DrawString(&oled, display.charBuf, &Font_7x10);
     
     Oled_SetCursor(&oled, 28, 32);
     Oled_DrawString(&oled, "Temp: ", &Font_7x10);
-    const uint8_t len2 = Str_PrintFloat(display.charBuf, pressure.temperature, 1);
-    Oled_SetCursor(&oled, 98 - 7*len2, 32);
+
+    Str_PrintFloat(display.charBuf, 4, 1, false, pressure.temperature);
+    Oled_SetCursor(&oled, 70, 32);
     Oled_DrawString(&oled, display.charBuf, &Font_7x10);
 
     return 1;
 }
 
 static uint8_t app_magnet_live(void) {
+    /*
     Oled_Fill(&oled, Oled_ColorBlack);
     //Oled_ClearRectangle(&oled, 44, 34, 86, 45);
     Oled_SetCursor(&oled, 56, 0);
@@ -219,7 +256,7 @@ static uint8_t app_magnet_live(void) {
     float dy = 16.0f * (float)sin(magnet.angle);
     
     Oled_DrawLine(&oled, 16, 32, 16 + (int16_t)dx, 32 + (int16_t)dy);
-
+*/
     return 1;
 }
 
@@ -228,14 +265,28 @@ static uint8_t app_imu_live(void) {
 }
 
 static uint8_t app_home_live(void) {
+    Oled_Fill(&oled, Oled_ColorBlack);
+   
+    sprintf(display.charBuf, "%02d/%02d/%02d", nmea.month, nmea.day, nmea.year);
+    Oled_SetCursor(&oled, 7, 0);
+    Oled_DrawString(&oled, display.charBuf, &Font_7x10);
+
+    sprintf(display.charBuf, "%02d:%02d", nmea.hour, nmea.minute);
+    Oled_SetCursor(&oled, 84, 0);
+    Oled_DrawString(&oled, display.charBuf, &Font_7x10);
+    
+    sprintf(display.charBuf, "%3d", (uint16_t)nmea.speed);
+    Oled_SetCursor(&oled, 77, 21);
+    Oled_DrawString(&oled, display.charBuf, &Font_14x20);
+
     // time (top hh:mm)
     // gps speed
     // g accel
     // pressure
     // temperature
     // altitude
-    Oled_SetCursor(&oled, 20, 16);
-    Oled_DrawString(&oled, "homescreen", &Font_7x10);
+    //Oled_SetCursor(&oled, 20, 16);
+    //Oled_DrawString(&oled, "homescreen", &Font_7x10);
     return 1;
 }
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -307,20 +358,20 @@ static struct Display_Screen magnet_screen = {.update = &app_magnet_live};
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Display_Screen imu_screen = {.update = &app_imu_live};
 /////////////////////////////////////////////////////////////////////////////////////////////
-static struct Display_Option menu_options[4] = {
+static struct Display_Option menu_options[5] = {
 //        {.text = "Enable", .var = &var_active},
 //        {.text = "Trigger", .redirect = &trigger_screen},
         {.text = "Sensor1", .redirect = &sensor1_screen},
         {.text = "Sensor2", .redirect = &sensor2_screen},
         {.text = "Sensor3", .redirect = &sensor3_screen},
-//        {.text = "GPS", .redirect = &gps_live},
+        {.text = "GPS", .redirect = &gps_live},
 //        {.text = "Repicator", .redirect = &replicator_screen},
 //        {.text = "Pressure", .redirect = &pressure_screen},
 //        {.text = "Magnometer", .redirect = &magnet_screen},
 //        {.text = "Accel/Gyro", .redirect = &imu_screen},
         {.text = "Reset", .action = &app_memory_reset},
 };
-static struct Display_Screen menu_screen = {.optionCount = 4, .options = menu_options};
+static struct Display_Screen menu_screen = {.optionCount = 5, .options = menu_options};
 static struct Display_Screen home_screen = {.update = &app_home_live, .redirect = &menu_screen};
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Display_Handle display = {.oled = &oled, .buttons = buttons, .memory = &memory, .top = &home_screen, .depth = 4, .chars = 12, .values_update = &app_values_update};
@@ -337,13 +388,6 @@ static struct Display_Handle display = {.oled = &oled, .buttons = buttons, .memo
 //  CDC_Transmit_FS((uint8_t*)buf, strlen(buf));
 //}
 
-static uint16_t app_rpm_max(uint16_t a, uint16_t b) {
-    if (a > b) {
-        return a;
-    }
-    return b;
-}
-
 void App_Init(void) {
     HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 2048);
     HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_2, DAC_ALIGN_12B_R, 2048);
@@ -357,8 +401,8 @@ void App_Init(void) {
     Button_Init(&button3);
     Button_Init(&button4);
     
-    //Nmea_Init(&nmea);
-    //Gps_Init(&gps);
+    Nmea_Init(&nmea);
+    Gps_Init(&gps);
     //Lps22hh_Init(&pressure);
     //Qmc5883_Init(&magnet);
     //Icm42688_Init(&imu);
@@ -461,7 +505,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
 #ifdef GPS_TO_USB
         CDC_Transmit_FS(gps.readBuf, size);
 #endif
-        Nmea_Parse(&nmea, gps.readBuf, size);
+        Nmea_Parse(&nmea, (char*)gps.readBuf, size);
     }
 }
 

@@ -1,6 +1,7 @@
 #include "memory.h"
 #include "eeprom.h"
 #include "stdlib.h"
+#include "stdbool.h"
 #include "str.h"
 
 void Memory_Init(struct Memory_Handle* handle) {
@@ -48,5 +49,7 @@ void Memory_Save(struct Memory_Handle* handle, struct Memory_Variable* var) {
 }
 
 uint8_t Memory_Print(char* buf, struct Memory_Variable* var) {
-    return Str_PrintFloat(buf, var->value, var->decimals);
+    const uint8_t len = var->maxDigit + var->decimals + 1;
+    Str_PrintFloat(buf, len, var->decimals, true, var->value);
+    return len;
 }

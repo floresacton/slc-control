@@ -5,109 +5,111 @@
 
 static char* messages[NMEA_MESSAGE_COUNT] = {"GGA", "GLL", "GSA", "GSV", "MSS", "RMC", "VTG", "ZDA"};
 
-static char nmea_parse_hem(char* msg, char* end) {
-    if (msg == end) {
-        return '-';
-    }
-    return *msg;
+static char nmea_parse_hem(char* str, uint8_t len) {
+    if (!len) return '-';
+    return str[0];
 }
 
-static float nmea_parse_coord(char* msg, char* end, uint8_t digits) {
-    uint8_t deg = 0;
-    for (uint8_t i = 0; i < digits && (msg < end); i++) {
-        deg *= 10;
-        deg += *msg-'0';
-        msg++;
-    }
-    const float min = Str_ParseFloat(msg, end);
+static float nmea_parse_coord(char* str, uint8_t len, uint8_t digits) {
+    if (len < digits) return 0;
+
+    const uint8_t deg = Str_ParseByte(str, digits);
+
+    const float min = Str_ParseFloat(str+digits, len-digits);
     return min/60.0 + (float)deg;
 }
 
-static void nmea_parse_utc(struct Nmea_Handle* handle, char* msg, char* end) {
+static void nmea_parse_utc(struct Nmea_Handle* handle, char* str, uint8_t len) {
+    if (len < 4) return;
+
     uint8_t hour = 0;
-    for (uint8_t i = 0; i < 2 && (msg < end); i++) {
+    for (uint8_t i = 0; i < 2; i++) {
         hour *= 10;
-        hour += *msg-'0';
-        msg++;
+        hour += str[i] - '0';
     }
     uint8_t minute = 0;
-    for (uint8_t i = 0; i < 2 && (msg < end); i++) {
+    for (uint8_t i = 2; i < 4; i++) {
         minute *= 10;
-        minute += *msg-'0';
-        msg++;
+        minute += str[i] - '0';
     }
-    const float second = Str_ParseFloat(msg, end);
+    const float second = Str_ParseFloat(str+4, len-4);
 
     handle->hour = hour;
     handle->minute = minute;
     handle->second = second;
+
+    // utc to central time
+    if (handle->hour < 6) {
+        handle->hour += 19;
+    }else{
+        handle->hour -= 5;
+    }
 }
 
-static void nmea_parse_date(struct Nmea_Handle* handle, char* msg, char* end) {
+static void nmea_parse_date(struct Nmea_Handle* handle, char* str, uint8_t len) {
+    if (len < 6) return;
+
     uint8_t day = 0;
-    for (uint8_t i = 0; i < 2 && (msg < end); i++) {
+    for (uint8_t i = 0; i < 2; i++) {
         day *= 10;
-        day += *msg-'0';
-        msg++;
+        day += str[i] - '0';
     }
     uint8_t month = 0;
-    for (uint8_t i = 0; i < 2 && (msg < end); i++) {
+    for (uint8_t i = 2; i < 4; i++) {
         month *= 10;
-        month += *msg-'0';
-        msg++;
+        month += str[i] - '0';
     }
     uint8_t year = 0;
-    for (uint8_t i = 0; i < 2 && (msg < end); i++) {
+    for (uint8_t i = 4; i < 6; i++) {
         year *= 10;
-        year += *msg-'0';
-        msg++;
+        year += str[i] - '0';
     }
     handle->day = day;
     handle->month = month;
     handle->year = year;
 }
 
-static void nmea_parse_param(struct Nmea_Handle* handle, uint8_t message, uint8_t param, char* start, char* end) {
-    switch (message) {
+static void nmea_parse_param(struct Nmea_Handle* handle, uint8_t type, uint8_t index, char* str, uint8_t len) {
+    switch (type) {
     case Nmea_MessageGGA:
-        switch (param) {
+        switch (index) {
         case 6:
-            handle->satCount = Str_ParseByte(start, end);
+            handle->satCount = Str_ParseByte(str, len);
             return;
         case 8:
-            handle->altitude = Str_ParseFloat(start, end);
+            handle->altitude = Str_ParseFloat(str, len);
             return;
         }
         return;
     case Nmea_MessageRMC:
-        switch (param) {
+        switch (index) {
         case 0:
-            nmea_parse_utc(handle, start, end);
+            nmea_parse_utc(handle, str, len);
             return;
         case 1:
-            handle->fix = *start == 'A';
+            handle->fix = str[0] == 'A';
             return;
         case 2:
-            handle->latitude = nmea_parse_coord(start, end, 2);
+            handle->latitude = nmea_parse_coord(str, len, 2);
             return;
         case 3:
-            handle->latHem = nmea_parse_hem(start, end);
+            handle->latHem = nmea_parse_hem(str, len);
             return;
         case 4:
-            handle->longitude = nmea_parse_coord(start, end, 3);
+            handle->longitude = nmea_parse_coord(str, len, 3);
             return;
         case 5:
-            handle->lonHem = nmea_parse_hem(start, end);
+            handle->lonHem = nmea_parse_hem(str, len);
             return;
         case 8:
-            nmea_parse_date(handle, start, end);
+            nmea_parse_date(handle, str, len);
             return;
         }
         return;
     case Nmea_MessageVTG:
-        switch(param){
-        case 7:
-            handle->speed = Str_ParseFloat(start, end) * 0.621371;
+        switch (index) {
+        case 6:
+            handle->speed = Str_ParseFloat(str, len) * 0.621371;
             return;
         }
         return;
@@ -116,139 +118,83 @@ static void nmea_parse_param(struct Nmea_Handle* handle, uint8_t message, uint8_
     }
 }
 
-static void nmea_parse_msg(struct Nmea_Handle* handle, char* start, char* end) {
-    const uint16_t len = end-start;
+static void nmea_parse_line(struct Nmea_Handle* handle, char* str, uint8_t len) {
     if (len < NMEA_MIN_LENGTH) {
         return;
     }
-    //$GP GLL, (skip first three characters)
-    start += 3;
-
-    uint8_t count = 0;
-    char* msg = NULL;
-    for (uint8_t m = 0; m < NMEA_MESSAGE_COUNT; m++) {
-        if (Str_Equal(start, messages[m], 3)) {
-            start += 3;
-            for (; start < end; start++) {
-                if (*start == ',') {
-                    if (msg) {
-                        nmea_parse_param(handle, m, count, msg+1, start);
-                        count++;
-                    }
-                    msg = start;
-                }
-            }
-            if (msg) {
-                nmea_parse_param(handle, m, count, msg+1, start);
-            }
-            return;
+    
+    uint8_t type = 0;
+    for (; type < NMEA_MESSAGE_COUNT; type++) {
+        //$GP GLL, (ski first three)
+        if (Str_Equal(str+3, messages[type], 3)) {
+            goto comma_parser;
         }
     }
-}
-//  if (Str_Comp(start, "GGA", 3)) {
-//      start += 3;
-//      char* msg_begin
-//      for (; start < end; start++) {
-//
-//      }
-//  }else if (Str_Comp(start, "RMC", 3)) {
-//      start += 3;
-//
-//  }else if (Str_Comp(start, "VTG", 3)) {
-//      start += 3;
-//
-//  }
+    return;
 
-//  start += 2;
-//  if (Str_Comp(start, "GGA", 3)) {
-//      start += 3;
-//      uint8_t count = 0;
-//      char last = ' ';
-//      while (last) {
-//          start++;
-//          char* end = Str_To(start, ',');
-//          last = *end;
-//          *end = '\0';
-//          //start is a readable string now
-//          switch (count) {
-//          case 6:
-//              handle->satCount = Str_ParseByte(start);
-//              break;
-//          case 8:
-//              handle->altitude = Str_ParseFloat(start);
-//              break;
-//          }
-//          start = end;
-//          count++;
-//      }
-//      return;
-//  }
-//  if (Str_Comp(start, "RMC", 3)) {
-//      start += 3;
-//      uint8_t count = 0;
-//      char last = ' ';
-//      while (last) {
-//          start++;
-//          char* end = Str_To(start, ',');
-//          last = *end;
-//          *end = '\0';
-//          //start is a readable string now
-//          switch (count) {
-//          case 0:
-//              nmea_parse_utc(handle, start);
-//              break;
-//          case 1:
-//              handle->fix = *start == 'A';
-//              break;
-//          case 2:
-//              handle->latitude = nmea_parse_coord(start, 2);
-//              break;
-//          case 3:
-//              handle->latHem = nmea_parse_hem(start);
-//              break;
-//          case 4:
-//              handle->longitude = nmea_parse_coord(start, 3);
-//              break;
-//          case 5:
-//              handle->lonHem = nmea_parse_hem(start);
-//              break;
-//          case 8:
-//              nmea_parse_date(handle, start);
-//              break;
-//          }
-//          start = end;
-//          count++;
-//      }
-//      return;
-//  }
-//  if (Str_Comp(start, "VTG", 3)) {
-//      start += 3;
-//      start = Str_Count(start, ',', 7);
-//      start++;
-//      char* speed_end = Str_To(start, ',');
-//      *speed_end = '\0';
-//      handle->speed = Str_ParseFloat(start) * 0.621371;
-//      return;
-//  }
+comma_parser: ;
+    
+    uint8_t count = 0;
+
+    uint8_t valid = 0;
+    uint16_t begin = 0;
+    uint16_t i = 6;
+    for (; i < len; i++) {
+        if (str[i] == ',') {
+            if (valid) {
+                nmea_parse_param(handle, type, count, str + begin, i - begin);
+                count++;
+            }
+            begin = i + 1;
+            valid = 1;
+        }
+    }
+    if (valid) {
+        nmea_parse_param(handle, type, count, str + begin, i - begin);
+    }
+}
 
 void Nmea_Init(struct Nmea_Handle* handle) {
+    /*
+    uint8_t fix;
+    uint8_t satCount;
+
+    uint8_t hour;
+    uint8_t minute;
+    float second;
+
+    uint8_t year;
+    uint8_t month;
+    uint8_t day;
+
+    float latitude;
+    char latHem;
+    float longitude;
+    char lonHem;
+    float altitude;
+
+    float speed;
+    */
+
     handle->latHem = '-';
     handle->lonHem = '-';
 }
 
-void Nmea_Parse(struct Nmea_Handle* handle, uint8_t* data, uint16_t len) {
-    uint8_t* end = data + len;
-    uint8_t* begin = NULL;
-    for (; (data < end); data++) {
-        if (*data == '$') {
-            if (begin) {
-                nmea_parse_msg(handle, (char*)begin, (char*)data);
+void Nmea_Parse(struct Nmea_Handle* handle, char* str, uint16_t len) {
+    uint8_t valid = 0;
+    uint16_t begin = 0;
+    uint16_t i = 0;
+    for (; i < len; i++) {
+        if (str[i] == '$') {
+            if (valid) {
+                nmea_parse_line(handle, str + begin, i - begin);
             }
-            begin = data;
+            begin = i;
+            valid = 1;
         }
     }
-    if (begin) {
-        nmea_parse_msg(handle, (char*)begin, (char*)data);
+    if (valid) {
+        nmea_parse_line(handle, str + begin, i - begin);
     }
 }
 

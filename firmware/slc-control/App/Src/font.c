@@ -196,5 +196,7 @@ static const uint8_t font_data_7x10[] = {
 0x00, 0x00, 0x00, 0x74, 0x4C, 0x00, 0x00, 0x00, 0x00, 0x00,  // ~
 };
 
+const struct Font Font_14x20 = {.width = 7, .height = 10, .scale = 2, .data = font_data_7x10};
 const struct Font Font_7x10 = {.width = 7, .height = 10, .scale = 1, .data = font_data_7x10};
 const struct Font Font_6x8 = {.width = 6, .height = 8, .scale = 1, .data = font_data_6x8};
+

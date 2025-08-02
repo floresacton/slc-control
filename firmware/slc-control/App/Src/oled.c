@@ -238,12 +238,26 @@ void Oled_DrawChar(struct Oled_Handle* handle, char chr, const struct Font* font
     if (handle->width < (handle->cursorX + font->width) || handle->height < (handle->cursorY + font->height)) {
         return;
     }
-
+    
     for (uint16_t y = 0; y < font->height; y++) {
         const uint8_t data = font->data[(chr - FONT_START) * font->height + y];
-    for (uint16_t x = 0; x < font->width; x++) {
+        for (uint16_t x = 0; x < font->width; x++) {
             if ((data << x) & 0x80) {
-                Oled_DrawPixel(handle, handle->cursorX + x, handle->cursorY + y);
+                // cursed because I'm not remaking the font logic
+                if (font->scale == 1) {
+                    Oled_DrawPixel(handle, handle->cursorX + x, handle->cursorY + y);
+                }else{
+                    Oled_DrawPixel(handle, handle->cursorX + 3*x  , handle->cursorY + 3*y);
+                    Oled_DrawPixel(handle, handle->cursorX + 3*x+1, handle->cursorY + 3*y);
+                    Oled_DrawPixel(handle, handle->cursorX + 3*x+2, handle->cursorY + 3*y);
+                    Oled_DrawPixel(handle, handle->cursorX + 3*x  , handle->cursorY + 3*y+1);
+                    Oled_DrawPixel(handle, handle->cursorX + 3*x+1, handle->cursorY + 3*y+1);
+                    Oled_DrawPixel(handle, handle->cursorX + 3*x+2, handle->cursorY + 3*y+1);
+                    Oled_DrawPixel(handle, handle->cursorX + 3*x  , handle->cursorY + 3*y+2);
+                    Oled_DrawPixel(handle, handle->cursorX + 3*x+1, handle->cursorY + 3*y+2);
+                    Oled_DrawPixel(handle, handle->cursorX + 3*x+2, handle->cursorY + 3*y+2);
+                    
+                } 
             }
         }
     }
