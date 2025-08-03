@@ -60,8 +60,13 @@ static struct Memory_Variable var_sensor2_max = {.min = 0.0f, .max = 500.0f, .re
 static struct Memory_Variable var_sensor3_pulses = {.min = 1.0f, .max = 99.0f, .reset = 30.0f, .decimals = 0};
 static struct Memory_Variable var_sensor3_circ = {.min = 0.0f, .max = 5000.0f, .reset = 2000.0f, .decimals = 0};
 static struct Memory_Variable var_sensor3_max = {.min = 0.0f, .max = 500.0f, .reset = 300.0f, .decimals = 0};
+
+static struct Memory_Variable var_replicator_pulses = {.min = 1.0f, .max = 99.0f, .reset = 50.0f, .decimals = 0};
+static struct Memory_Variable var_replicator_circ = {.min = 0.0f, .max = 500.0f, .reset = 100.0f, .decimals = 0};
+static struct Memory_Variable var_replicator_reload = {.min = 1.0f, .max = 50000.0f, .reset = 1000.0f, .decimals = 0};
+static struct Memory_Variable var_replicator_duty = {.min = 1.0f, .max = 5000.0f, .reset = 100.0f, .decimals = 0};
 /////////////////////////////////////////////////////////////////////////////////////////////
-static struct Memory_Variable* memory_vars[13] = {
+static struct Memory_Variable* memory_vars[17] = {
         &var_active,
         &var_trigger_prim,
         &var_trigger_min,
@@ -75,10 +80,14 @@ static struct Memory_Variable* memory_vars[13] = {
         &var_sensor3_pulses,
         &var_sensor3_circ,
         &var_sensor3_max,
+        &var_replicator_pulses,
+        &var_replicator_circ,
+        &var_replicator_reload,
+        &var_replicator_duty,
 };
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Eeprom_Handle eeprom = {.hi2c = &hi2c1, .address = 0xA0, .pages = 512, .pageSize = 64};
-static struct Memory_Handle memory = {.eeprom = &eeprom, .hash = 49, .vars = memory_vars, .count = 13};
+static struct Memory_Handle memory = {.eeprom = &eeprom, .hash = 49, .vars = memory_vars, .count = 17};
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Button_Handle button1 = {.port = BTN1_GPIO_Port, .pin = BTN1_Pin};
 static struct Button_Handle button2 = {.port = BTN2_GPIO_Port, .pin = BTN2_Pin};
@@ -119,6 +128,9 @@ static void app_values_update(void) {
     const uint32_t mm_per_hour3 = (uint16_t)var_sensor3_max.value * 1609347;
     tach3.ppr = var_sensor3_pulses.value;
     tach3.max_rpm = mm_per_hour3 / ((uint32_t)var_sensor3_circ.value * 60);
+
+    __HAL_TIM_SET_AUTORELOAD(&htim17, (uint16_t)var_replicator_reload.value);
+    __HAL_TIM_SET_COMPARE(&htim17, TIM_CHANNEL_1, (uint16_t)var_replicator_duty.value);
 }
 
 static uint8_t app_trigger_live() {
@@ -133,7 +145,6 @@ static uint8_t app_trigger_live() {
 }
 
 static uint8_t app_sensor_live(uint8_t chan) {
-    // TODO
     Oled_ClearRectangle(&oled, 48, 34, 75, 44);
     
     const uint16_t rpm = tachs[chan]->rpm;
@@ -275,12 +286,15 @@ static uint8_t app_home_live(void) {
     Oled_SetCursor(&oled, 84, 0);
     Oled_DrawString(&oled, display.charBuf, &Font_7x10);
     
-    sprintf(display.charBuf, "%3d", (uint16_t)nmea.speed);
+    if (nmea.fix) {
+        sprintf(display.charBuf, "%3d", (uint16_t)nmea.speed);
+    } else {
+        display.charBuf[0] = '-';
+        display.charBuf[1] = 0;
+    }
     Oled_SetCursor(&oled, 77, 21);
     Oled_DrawString(&oled, display.charBuf, &Font_14x20);
 
-    // time (top hh:mm)
-    // gps speed
     // g accel
     // pressure
     // temperature
@@ -338,6 +352,18 @@ static struct Display_Option sensor3_options[4] = {
 };
 static struct Display_Screen sensor3_screen = {.optionCount = 4, .options = sensor3_options};
 /////////////////////////////////////////////////////////////////////////////////////////////
+static struct Display_Screen replicator_pulses = {.var = &var_replicator_pulses};
+static struct Display_Screen replicator_circ = {.var = &var_replicator_circ};
+static struct Display_Screen replicator_reload = {.var = &var_replicator_reload};
+static struct Display_Screen replicator_duty = {.var = &var_replicator_duty};
+static struct Display_Option replicator_options[4] = {
+        {.text = "Pulses", .redirect = &replicator_pulses},
+        {.text = "Circ IN", .redirect = &replicator_circ},
+        {.text = "Auto Reload", .redirect = &replicator_reload},
+        {.text = "Duty Cycle", .redirect = &replicator_duty},
+};
+static struct Display_Screen replicator_screen = {.optionCount = 4, .options = replicator_options};
+/////////////////////////////////////////////////////////////////////////////////////////////
 /*
 static struct Display_Screen replicator_value = {};
 static struct Display_Option replicator_options[0] = {
@@ -358,12 +384,13 @@ static struct Display_Screen magnet_screen = {.update = &app_magnet_live};
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Display_Screen imu_screen = {.update = &app_imu_live};
 /////////////////////////////////////////////////////////////////////////////////////////////
-static struct Display_Option menu_options[5] = {
+static struct Display_Option menu_options[6] = {
 //        {.text = "Enable", .var = &var_active},
 //        {.text = "Trigger", .redirect = &trigger_screen},
         {.text = "Sensor1", .redirect = &sensor1_screen},
         {.text = "Sensor2", .redirect = &sensor2_screen},
         {.text = "Sensor3", .redirect = &sensor3_screen},
+        {.text = "Replicator", .redirect = &replicator_screen},
         {.text = "GPS", .redirect = &gps_live},
 //        {.text = "Repicator", .redirect = &replicator_screen},
 //        {.text = "Pressure", .redirect = &pressure_screen},
@@ -371,7 +398,7 @@ static struct Display_Option menu_options[5] = {
 //        {.text = "Accel/Gyro", .redirect = &imu_screen},
         {.text = "Reset", .action = &app_memory_reset},
 };
-static struct Display_Screen menu_screen = {.optionCount = 5, .options = menu_options};
+static struct Display_Screen menu_screen = {.optionCount = 6, .options = menu_options};
 static struct Display_Screen home_screen = {.update = &app_home_live, .redirect = &menu_screen};
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Display_Handle display = {.oled = &oled, .buttons = buttons, .memory = &memory, .top = &home_screen, .depth = 4, .chars = 12, .values_update = &app_values_update};
@@ -392,6 +419,8 @@ void App_Init(void) {
     HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 2048);
     HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_2, DAC_ALIGN_12B_R, 2048);
     HAL_DAC_SetValue(&hdac3, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 2048);
+
+    HAL_Delay(50);
 
     Oled_Init(&oled);
     // eeprom has no init
@@ -422,7 +451,7 @@ void App_Init(void) {
     HAL_TIM_Base_Start_IT(&htim1);
     HAL_TIM_Base_Start_IT(&htim2);
     HAL_TIM_Base_Start_IT(&htim3);
-    //HAL_TIM_Base_Start_IT(&htim17);
+    HAL_TIM_PWM_Start(&htim17, TIM_CHANNEL_1);
 }
 
 void App_Update(void) {
@@ -442,6 +471,37 @@ void App_Update(void) {
 
     Display_Update(&display);
     HAL_Delay(20);
+
+    const uint32_t mm_per_hour = tach1.rpm * ((uint32_t)var_sensor3_circ.value * 60);
+    const uint16_t mph = mm_per_hour / 1609347;
+
+    const uint16_t pps = ((uint16_t)var_replicator_pulses.value * mph * 1056) / (60 * (uint16_t)var_replicator_circ.value);
+    const uint32_t clock_div = 144000000 / (uint16_t)var_replicator_reload.value; // 144000
+    uint16_t prescale = 65535;
+    if (pps != 0) {
+        uint32_t temp_scale = clock_div / pps;
+        if (temp_scale < 65535) {
+            prescale = temp_scale;
+        }
+    }
+    htim17.Instance->PSC = prescale;
+
+    //8.8 pps
+    //2000 pps
+    // for good resolution
+    // 200khz
+    // 100->30,000
+
+    // HAL_GPIO_TogglePin(REPL_GPIO_Port, REPL_Pin);
+
+
+    //ARR = 1000-1
+    //CCR = 100-1
+
+    //144,000,000
+    //
+
+
 //  char buf[20] = "bob";
 // //   sprintf(buf, "%d", Tach_GetRpm(&tachs, 0));
 //  Oled_ClearRectangle(&oled, 0, 31, 128, 50);
@@ -483,7 +543,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
         Button_Update(&button3);
         Button_Update(&button4);
     } else if (htim == &htim17) {
-        // HAL_GPIO_TogglePin(REPL_GPIO_Port, REPL_Pin);
     }
 }
 
