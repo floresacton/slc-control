@@ -31,7 +31,7 @@ extern SPI_HandleTypeDef hspi2;
 extern TIM_HandleTypeDef htim1; // 50khz tach tick
 extern TIM_HandleTypeDef htim2; // 10hz tach update
 extern TIM_HandleTypeDef htim3; // 50hz button update
-extern TIM_HandleTypeDef htim17; // replicator
+extern TIM_HandleTypeDef htim8; // replicator
 
 extern DAC_HandleTypeDef hdac1;
 extern DAC_HandleTypeDef hdac3;
@@ -64,7 +64,7 @@ static struct Memory_Variable var_sensor3_max = {.min = 0.0f, .max = 500.0f, .re
 static struct Memory_Variable var_replicator_pulses = {.min = 1.0f, .max = 99.0f, .reset = 50.0f, .decimals = 0};
 static struct Memory_Variable var_replicator_circ = {.min = 0.0f, .max = 500.0f, .reset = 100.0f, .decimals = 0};
 static struct Memory_Variable var_replicator_reload = {.min = 1.0f, .max = 50000.0f, .reset = 1000.0f, .decimals = 0};
-static struct Memory_Variable var_replicator_duty = {.min = 1.0f, .max = 5000.0f, .reset = 100.0f, .decimals = 0};
+static struct Memory_Variable var_replicator_duty = {.min = 1.0f, .max = 5000.0f, .reset = 500.0f, .decimals = 0};
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Memory_Variable* memory_vars[17] = {
         &var_active,
@@ -129,8 +129,8 @@ static void app_values_update(void) {
     tach3.ppr = var_sensor3_pulses.value;
     tach3.max_rpm = mm_per_hour3 / ((uint32_t)var_sensor3_circ.value * 60);
 
-    __HAL_TIM_SET_AUTORELOAD(&htim17, (uint16_t)var_replicator_reload.value);
-    __HAL_TIM_SET_COMPARE(&htim17, TIM_CHANNEL_1, (uint16_t)var_replicator_duty.value);
+    __HAL_TIM_SET_AUTORELOAD(&htim8, (uint16_t)var_replicator_reload.value-1);
+    __HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, (uint16_t)var_replicator_duty.value-1);
 }
 
 static uint8_t app_trigger_live() {
@@ -420,7 +420,7 @@ void App_Init(void) {
     HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_2, DAC_ALIGN_12B_R, 2048);
     HAL_DAC_SetValue(&hdac3, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 2048);
 
-    HAL_Delay(50);
+    HAL_Delay(100);
 
     Oled_Init(&oled);
     // eeprom has no init
@@ -451,7 +451,7 @@ void App_Init(void) {
     HAL_TIM_Base_Start_IT(&htim1);
     HAL_TIM_Base_Start_IT(&htim2);
     HAL_TIM_Base_Start_IT(&htim3);
-    HAL_TIM_PWM_Start(&htim17, TIM_CHANNEL_1);
+    HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_1);
 }
 
 void App_Update(void) {
@@ -472,10 +472,14 @@ void App_Update(void) {
     Display_Update(&display);
     HAL_Delay(20);
 
+    //HAL_GPIO_WritePin(REPH_GPIO_Port, REPH_Pin, 1);
+    //HAL_Delay(30);
+    //HAL_GPIO_WritePin(REPH_GPIO_Port, REPH_Pin, 0);
+    //HAL_Delay(30);
     const uint32_t mm_per_hour = tach1.rpm * ((uint32_t)var_sensor3_circ.value * 60);
     const uint16_t mph = mm_per_hour / 1609347;
 
-    const uint16_t pps = ((uint16_t)var_replicator_pulses.value * mph * 1056) / (60 * (uint16_t)var_replicator_circ.value);
+    const uint32_t pps = ((uint32_t)var_replicator_pulses.value * mph * 1056) / (60 * (uint32_t)var_replicator_circ.value);
     const uint32_t clock_div = 144000000 / (uint16_t)var_replicator_reload.value; // 144000
     uint16_t prescale = 65535;
     if (pps != 0) {
@@ -484,7 +488,7 @@ void App_Update(void) {
             prescale = temp_scale;
         }
     }
-    htim17.Instance->PSC = prescale;
+    htim8.Instance->PSC = prescale-1;
 
     //8.8 pps
     //2000 pps
@@ -542,7 +546,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
         Button_Update(&button2);
         Button_Update(&button3);
         Button_Update(&button4);
-    } else if (htim == &htim17) {
     }
 }
 
