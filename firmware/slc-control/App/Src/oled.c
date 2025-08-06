@@ -262,7 +262,7 @@ void Oled_DrawChar(struct Oled_Handle* handle, char chr, const struct Font* font
         }
     }
 
-    handle->cursorX += font->width;
+    handle->cursorX += font->width * font->scale;
 }
 
 void Oled_DrawString(struct Oled_Handle* handle, const char *str, const struct Font* font) {
