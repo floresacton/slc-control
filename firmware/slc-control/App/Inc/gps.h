@@ -18,6 +18,10 @@ struct Gps_Handle {
     uint8_t* txBuf;
 
     uint8_t* readBuf;
+    uint16_t readSize;
+    uint8_t init;
+
+    //volatile uint8_t available;
 };
 
 void Gps_Init(struct Gps_Handle* handle);

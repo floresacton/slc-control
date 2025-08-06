@@ -466,6 +466,11 @@ static struct Display_Handle display = {.oled = &oled, .buttons = buttons, .memo
 //}
 
 void App_Init(void) {
+    // have to be up here because race condition
+    // I think that its because the dma is starting during byte transmition
+    Nmea_Init(&nmea);
+    Gps_Init(&gps);
+
     HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 2048);
     HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_2, DAC_ALIGN_12B_R, 2048);
     HAL_DAC_SetValue(&hdac3, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 2048);
@@ -480,8 +485,8 @@ void App_Init(void) {
     Button_Init(&button3);
     Button_Init(&button4);
     
-    Nmea_Init(&nmea);
-    Gps_Init(&gps);
+    //Nmea_Init(&nmea);
+    //Gps_Init(&gps);
     Lps22hh_Init(&pressure);
     Qmc5883_Init(&magnet);
     Icm42688_Init(&imu);
@@ -502,6 +507,8 @@ void App_Init(void) {
     HAL_TIM_Base_Start_IT(&htim2);
     HAL_TIM_Base_Start_IT(&htim3);
     HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_1);
+
+    //Gps_Init(&gps);
 }
 
 void App_Update(void) {
@@ -543,7 +550,11 @@ void App_Update(void) {
     Lps22hh_ExtHandler(&pressure);
     Qmc5883_ExtHandler(&magnet);
     Icm42688_ExtHandler(&imu);
-
+    //if (gps.init){// == 2 && gps.available) {
+        //gps.available = 0;
+        //Nmea_Parse(&nmea, (char*)gps.readBuf, gps.readSize);
+        //gps.available = 1;
+    //}
     //8.8 pps
     //2000 pps
     // for good resolution
@@ -602,6 +613,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     }
 }
 
+/*
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
     if (Nmea_ExtFlag(&nmea, GPIO_Pin)) {
         //Nmea_ExtHandler(&nmea);
@@ -613,6 +625,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
         //Icm42688_ExtHandler(&imu);
     }
 }
+*/
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
     if (Gps_UartFlag(&gps, huart)) {
@@ -620,6 +633,11 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size) {
 #ifdef GPS_TO_USB
         CDC_Transmit_FS(gps.readBuf, size);
 #endif
+        //gps.readSize = size;
+        //gps.init++;
+        //if (gps.init > 2) {
+        //    gps.init = 2;
+        //}
         Nmea_Parse(&nmea, (char*)gps.readBuf, size);
     }
 }

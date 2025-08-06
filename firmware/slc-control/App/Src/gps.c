@@ -16,6 +16,8 @@ void Gps_Init(struct Gps_Handle* handle) {
     handle->txBuf = malloc(handle->txBufSize);
 
     gps_start_dma(handle);
+    //handle->available = 1;
+    handle->init = 0;
 }
 
 uint8_t Gps_UartFlag(struct Gps_Handle* handle, UART_HandleTypeDef* huart) {
@@ -23,8 +25,12 @@ uint8_t Gps_UartFlag(struct Gps_Handle* handle, UART_HandleTypeDef* huart) {
 }
 
 void Gps_UartHandler(struct Gps_Handle* handle, uint16_t len) {
-    memcpy(handle->readBuf, handle->rxBuf, len);
-    gps_start_dma(handle);
+    //if (handle->available) {
+    //    handle->available = 0;
+        memcpy(handle->readBuf, handle->rxBuf, len);
+        gps_start_dma(handle);
+        //handle->available = 1;
+    //}
 }
 
 void Gps_Transmit(struct Gps_Handle* handle, uint8_t* data, uint16_t len) {
