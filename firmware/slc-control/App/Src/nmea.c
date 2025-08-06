@@ -77,7 +77,7 @@ static void nmea_parse_param(struct Nmea_Handle* handle, uint8_t type, uint8_t i
             handle->satCount = Str_ParseByte(str, len);
             return;
         case 8:
-            handle->altitude = Str_ParseFloat(str, len);
+            handle->altitude = Str_ParseFloat(str, len) * 3.28084f;
             return;
         }
         return;

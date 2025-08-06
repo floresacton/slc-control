@@ -16,8 +16,8 @@
 #include "qmc5883.h"
 #include "icm42688.h"
 
-#define GPS_TO_USB
-#define USB_TO_GPS
+//#define GPS_TO_USB
+//#define USB_TO_GPS
 
 extern UART_HandleTypeDef huart3;
 extern DMA_HandleTypeDef hdma_usart3_rx;
@@ -205,10 +205,12 @@ static uint8_t app_gps_live(void) {
         Oled_DrawChar(&oled, nmea.lonHem, &Font_7x10);
         Oled_DrawBitmap(&oled, 82, 39, Bitmap_Decimal, 3, 3);
 
-        sprintf(display.charBuf, "%4dM", (uint16_t)nmea.altitude);
+        sprintf(display.charBuf, "%5d", (uint16_t)nmea.altitude);
         Oled_SetCursor(&oled, 0, 48);
         Oled_DrawString(&oled, display.charBuf, &Font_7x10);
-        
+        Oled_SetCursor(&oled, 37, 48);
+        Oled_DrawString(&oled, "FT", &Font_7x10);
+
         sprintf(display.charBuf, "%3dMPH", (uint16_t)nmea.speed);
         Oled_SetCursor(&oled, 84, 48);
         Oled_DrawString(&oled, display.charBuf, &Font_7x10);
@@ -309,12 +311,18 @@ static uint8_t app_imu_live(void) {
     return 1;
 }
 
+static float app_gabs(float accel) {
+    return accel >= 0 ? accel : -accel;
+}
 static uint8_t app_home_live(void) {
     Oled_Fill(&oled, Oled_ColorBlack);
    
-    sprintf(display.charBuf, "%02d/%02d/%02d", nmea.month, nmea.day, nmea.year);
+    sprintf(display.charBuf, "%3d", (uint16_t)pressure.temperature);
     Oled_SetCursor(&oled, 7, 0);
     Oled_DrawString(&oled, display.charBuf, &Font_7x10);
+    Oled_DrawBitmap(&oled, 29, 0, Bitmap_Decimal, 3, 3);
+    Oled_SetCursor(&oled, 32, 0);
+    Oled_DrawString(&oled, "F", &Font_7x10);
 
     sprintf(display.charBuf, "%02d:%02d", nmea.hour, nmea.minute);
     Oled_SetCursor(&oled, 84, 0);
@@ -329,12 +337,29 @@ static uint8_t app_home_live(void) {
     Oled_SetCursor(&oled, 77, 21);
     Oled_DrawString(&oled, display.charBuf, &Font_14x20);
 
-    // g accel
-    // pressure
-    // temperature
-    // altitude
-    //Oled_SetCursor(&oled, 20, 16);
-    //Oled_DrawString(&oled, "homescreen", &Font_7x10);
+    Oled_DrawBitmap(&oled, 7, 20, Bitmap_Forward, 7, 8);
+    Str_PrintFloat(display.charBuf, 4, 1, false, app_gabs(imu.accelz));
+    Oled_SetCursor(&oled, 14, 20);
+    Oled_DrawString(&oled, display.charBuf, &Font_7x10);
+    Oled_DrawBitmap(&oled, 33, 27, Bitmap_Decimal, 3, 3);
+    
+    Oled_DrawBitmap(&oled, 7, 36, Bitmap_Lateral, 8, 7);
+    Str_PrintFloat(display.charBuf, 4, 1, false, app_gabs(imu.accelx));
+    Oled_SetCursor(&oled, 14, 36);
+    Oled_DrawString(&oled, display.charBuf, &Font_7x10);
+    Oled_DrawBitmap(&oled, 33, 43, Bitmap_Decimal, 3, 3);
+
+    Str_PrintFloat(display.charBuf, 4, 1, false, pressure.pressure);
+    Oled_SetCursor(&oled, 7, 54);
+    Oled_DrawString(&oled, display.charBuf, &Font_7x10);
+    Oled_SetCursor(&oled, 37, 54);
+    Oled_DrawString(&oled, "kPa", &Font_7x10);
+
+    sprintf(display.charBuf, "%5d", (uint16_t)nmea.altitude);
+    Oled_SetCursor(&oled, 70, 54);
+    Oled_DrawString(&oled, display.charBuf, &Font_7x10);
+    Oled_SetCursor(&oled, 107, 54);
+    Oled_DrawString(&oled, "FT", &Font_7x10);
     return 1;
 }
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -495,7 +520,7 @@ void App_Update(void) {
     //1 = 20000rpm
 
     Display_Update(&display);
-    HAL_Delay(20);
+    HAL_Delay(50);
 
     //HAL_GPIO_WritePin(REPH_GPIO_Port, REPH_Pin, 1);
     //HAL_Delay(30);
@@ -515,6 +540,10 @@ void App_Update(void) {
     }
     htim8.Instance->PSC = prescale-1;
 
+    Lps22hh_ExtHandler(&pressure);
+    Qmc5883_ExtHandler(&magnet);
+    Icm42688_ExtHandler(&imu);
+
     //8.8 pps
     //2000 pps
     // for good resolution
@@ -526,7 +555,6 @@ void App_Update(void) {
 
     //ARR = 1000-1
     //CCR = 100-1
-
     //144,000,000
     //
 
@@ -578,11 +606,11 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
     if (Nmea_ExtFlag(&nmea, GPIO_Pin)) {
         //Nmea_ExtHandler(&nmea);
     } else if (Lps22hh_ExtFlag(&pressure, GPIO_Pin)) {
-        Lps22hh_ExtHandler(&pressure);
+        //Lps22hh_ExtHandler(&pressure);
     } else if (Qmc5883_ExtFlag(&magnet, GPIO_Pin)) {
-        Qmc5883_ExtHandler(&magnet);
+        //Qmc5883_ExtHandler(&magnet);
     } else if (Icm42688_ExtFlag(&imu, GPIO_Pin)) {
-        Icm42688_ExtHandler(&imu);
+        //Icm42688_ExtHandler(&imu);
     }
 }
 

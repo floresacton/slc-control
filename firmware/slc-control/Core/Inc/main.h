@@ -83,13 +83,10 @@ void Error_Handler(void);
 #define MOSIM_GPIO_Port GPIOA
 #define INTG_Pin GPIO_PIN_0
 #define INTG_GPIO_Port GPIOB
-#define INTG_EXTI_IRQn EXTI0_IRQn
 #define PPS_Pin GPIO_PIN_1
 #define PPS_GPIO_Port GPIOB
-#define PPS_EXTI_IRQn EXTI1_IRQn
 #define DRDYP_Pin GPIO_PIN_2
 #define DRDYP_GPIO_Port GPIOB
-#define DRDYP_EXTI_IRQn EXTI2_IRQn
 #define GTX_Pin GPIO_PIN_10
 #define GTX_GPIO_Port GPIOB
 #define GRX_Pin GPIO_PIN_11
@@ -104,7 +101,6 @@ void Error_Handler(void);
 #define MOSID_GPIO_Port GPIOB
 #define DRDYM_Pin GPIO_PIN_10
 #define DRDYM_GPIO_Port GPIOA
-#define DRDYM_EXTI_IRQn EXTI15_10_IRQn
 #define DRV1_Pin GPIO_PIN_4
 #define DRV1_GPIO_Port GPIOB
 #define DRV2_Pin GPIO_PIN_5

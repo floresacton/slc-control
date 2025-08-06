@@ -9,5 +9,7 @@ extern const uint8_t Bitmap_Edit[];
 extern const uint8_t Bitmap_NoSignal[];
 extern const uint8_t Bitmap_Signal[];
 extern const uint8_t Bitmap_Decimal[];
+extern const uint8_t Bitmap_Forward[];
+extern const uint8_t Bitmap_Lateral[];
 
 #endif

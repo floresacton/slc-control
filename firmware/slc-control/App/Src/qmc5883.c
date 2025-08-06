@@ -31,7 +31,7 @@ void Qmc5883_Init(struct Qmc5883_Handle* handle) {
     Qmc5583_Reset(handle);
 
     Qmc5583_SetMode(handle, Qmc5883_ModeCont);
-    Qmc5583_SetODR(handle, Qmc5883_Odr100);
+    Qmc5583_SetODR(handle, Qmc5883_Odr10);
     Qmc5583_SetScale(handle, Qmc5883_Scale2G);
     Qmc5583_SetOSR(handle, Qmc5883_Osr512);
     Qmc5883_SetFBR(handle, 1); // datasheet recommended
@@ -52,11 +52,11 @@ void Qmc5883_ExtHandler(struct Qmc5883_Handle* handle) {
     if (handle->init) {
         qmc5883_read_registers(handle, QMC5883_REG_X_OUT_L, handle->data, 6);
         if (handle->readTemp) {
-            qmc5883_read_registers(handle, QMC5883_REG_TEMP_OUT_L, handle->data+6, 2);
+            //qmc5883_read_registers(handle, QMC5883_REG_TEMP_OUT_L, handle->data+6, 2);
             
-            int16_t temp;
-            memcpy(&temp, handle->data+6, 2);
-            handle->temperature = (float)temp / 500.0f * 9.0f + 32.0f; // F
+            //int16_t temp;
+            //memcpy(&temp, handle->data+6, 2);
+            //handle->temperature = (float)temp / 500.0f * 9.0f + 32.0f; // F
         }
         int16_t x, y, z;
         memcpy(&x, handle->data, 2);

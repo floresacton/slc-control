@@ -37,7 +37,7 @@ void Lps22hh_Init(struct Lps22hh_Handle* handle) {
     }
     Lps22hh_Reset(handle);
 
-    Lps22hh_SetODR(handle, Lps22hh_Odr10);
+    Lps22hh_SetODR(handle, Lps22hh_Odr1);
     Lps22hh_SetFilter(handle, Lps22hh_Filt20);
     Lps22hh_SetInterrupt(handle, 1);
 
@@ -62,11 +62,11 @@ void Lps22hh_ExtHandler(struct Lps22hh_Handle* handle) {
         lps22hh_read_registers(handle, LPS22HH_REG_PRESS_XL, handle->data, 5);
         uint32_t pres = 0;
         memcpy(&pres, handle->data, 3);
-        handle->pressure = (float)pres / 40960.0f; //kpa
+        handle->pressure = (float)pres / 40960.0f + 6.3f; //kpa
 
         int16_t temp = 0;
         memcpy(&temp, handle->data+3, 2);
-        handle->temperature = (float)temp / 500.0f * 9.0f + 32.0f; // F
+        handle->temperature = (float)temp / 500.0f * 9.0f + 13.0f; // F
     }
 }
 
