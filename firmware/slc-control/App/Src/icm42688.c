@@ -111,6 +111,15 @@ uint8_t Icm42688_ExtFlag(struct Icm42688_Handle* handle, uint16_t pin) {
 void Icm42688_ExtHandler(struct Icm42688_Handle* handle) {
     if (handle->init) {
         icm42688_read_registers(handle, ICM42688_REG_FIFO_DATA, handle->data, 20);
+        int16_t ax, ay, az, temp;
+        memcpy(&ax, handle->data+1, 2);
+        memcpy(&ay, handle->data+3, 2);
+        memcpy(&az, handle->data+5, 2);
+        memcpy(&temp, handle->data+13, 2);
+        handle->accelx = (float)ax / 2048.0f;
+        handle->accely = (float)ay / 2048.0f;
+        handle->accelz = (float)az / 2048.0f;
+        handle->temperature = (float)temp / 132.48f + 25.0f;
     }
 }
 

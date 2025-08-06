@@ -324,6 +324,10 @@ struct Icm42688_Handle {
     uint8_t init;
 
     uint8_t* data;
+    float accelx;
+    float accely;
+    float accelz;
+    float temperature;
 };
 
 void Icm42688_Init(struct Icm42688_Handle* handle);

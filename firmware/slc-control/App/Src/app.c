@@ -28,7 +28,7 @@ extern I2C_HandleTypeDef hi2c2;
 extern SPI_HandleTypeDef hspi1;
 extern SPI_HandleTypeDef hspi2;
 
-extern TIM_HandleTypeDef htim1; // 50khz tach tick
+extern TIM_HandleTypeDef htim1; // 10khz tach tick
 extern TIM_HandleTypeDef htim2; // 10hz tach update
 extern TIM_HandleTypeDef htim3; // 50hz button update
 extern TIM_HandleTypeDef htim8; // replicator
@@ -145,7 +145,8 @@ static uint8_t app_trigger_live() {
 }
 
 static uint8_t app_sensor_live(uint8_t chan) {
-    Oled_ClearRectangle(&oled, 48, 34, 75, 44);
+    Oled_Fill(&oled, Oled_ColorBlack);
+    //Oled_ClearRectangle(&oled, 48, 34, 75, 44);
     
     const uint16_t rpm = tachs[chan]->rpm;
     sprintf(display.charBuf, "RPM: %4d", rpm);
@@ -218,12 +219,13 @@ static uint8_t app_gps_live(void) {
 static uint8_t app_pressure_live(void) {
     Oled_Fill(&oled, Oled_ColorBlack);
     //Oled_ClearRectangle(&oled, 44, 34, 86, 45);
-    Oled_SetCursor(&oled, 28, 16);
+    Oled_SetCursor(&oled, 35, 16);
     Oled_DrawString(&oled, "Kpa:", &Font_7x10);
 
     Str_PrintFloat(display.charBuf, 4, 1, false, pressure.pressure);
     Oled_SetCursor(&oled, 70, 16);
     Oled_DrawString(&oled, display.charBuf, &Font_7x10);
+    Oled_DrawBitmap(&oled, 89, 23, Bitmap_Decimal, 3, 3);
     
     Oled_SetCursor(&oled, 28, 32);
     Oled_DrawString(&oled, "Temp: ", &Font_7x10);
@@ -231,47 +233,79 @@ static uint8_t app_pressure_live(void) {
     Str_PrintFloat(display.charBuf, 4, 1, false, pressure.temperature);
     Oled_SetCursor(&oled, 70, 32);
     Oled_DrawString(&oled, display.charBuf, &Font_7x10);
+    Oled_DrawBitmap(&oled, 89, 39, Bitmap_Decimal, 3, 3);
 
     return 1;
 }
 
 static uint8_t app_magnet_live(void) {
-    /*
     Oled_Fill(&oled, Oled_ColorBlack);
     //Oled_ClearRectangle(&oled, 44, 34, 86, 45);
-    Oled_SetCursor(&oled, 56, 0);
+    Oled_SetCursor(&oled, 63, 0);
     Oled_DrawString(&oled, "X:", &Font_7x10);
-    const uint8_t len1 = Str_PrintFloat(display.charBuf, magnet.x, 3);
-    Oled_SetCursor(&oled, 119 - 7*len1, 0);
+    Str_PrintFloat(display.charBuf, 5, 3, false, magnet.x);
+    Oled_SetCursor(&oled, 77, 0);
     Oled_DrawString(&oled, display.charBuf, &Font_7x10);
+    Oled_DrawBitmap(&oled, 89, 7, Bitmap_Decimal, 3, 3);
 
-    Oled_SetCursor(&oled, 56, 16);
+    Oled_SetCursor(&oled, 63, 16);
     Oled_DrawString(&oled, "Y:", &Font_7x10);
-    const uint8_t len2 = Str_PrintFloat(display.charBuf, magnet.y, 3);
-    Oled_SetCursor(&oled, 119 - 7*len2, 16);
+    Str_PrintFloat(display.charBuf, 5, 3, false, magnet.y);
+    Oled_SetCursor(&oled, 77, 16);
     Oled_DrawString(&oled, display.charBuf, &Font_7x10);
+    Oled_DrawBitmap(&oled, 89, 23, Bitmap_Decimal, 3, 3);
     
-    Oled_SetCursor(&oled, 56, 32);
+    Oled_SetCursor(&oled, 63, 32);
     Oled_DrawString(&oled, "Z:", &Font_7x10);
-    const uint8_t len3 = Str_PrintFloat(display.charBuf, magnet.z, 3);
-    Oled_SetCursor(&oled, 119 - 7*len3, 32);
+    Str_PrintFloat(display.charBuf, 5, 3, false, magnet.z);
+    Oled_SetCursor(&oled, 77, 32);
     Oled_DrawString(&oled, display.charBuf, &Font_7x10); 
+    Oled_DrawBitmap(&oled, 89, 39, Bitmap_Decimal, 3, 3);
 
-    Oled_SetCursor(&oled, 49, 48);
+    Oled_SetCursor(&oled, 42, 48);
     Oled_DrawString(&oled, "Temp: ", &Font_7x10);
-    const uint8_t len4 = Str_PrintFloat(display.charBuf, magnet.temperature, 1);
-    Oled_SetCursor(&oled, 119 - 7*len4, 48);
+    Str_PrintFloat(display.charBuf, 4, 1, false, magnet.temperature);
+    Oled_SetCursor(&oled, 84, 48);
     Oled_DrawString(&oled, display.charBuf, &Font_7x10);
+    Oled_DrawBitmap(&oled, 103, 55, Bitmap_Decimal, 3, 3);
     
     float dx = 16.0f * (float)cos(magnet.angle);
     float dy = 16.0f * (float)sin(magnet.angle);
     
-    Oled_DrawLine(&oled, 16, 32, 16 + (int16_t)dx, 32 + (int16_t)dy);
-*/
+    Oled_DrawLine(&oled, 16, 24, 16 + (int16_t)dx, 32 + (int16_t)dy);
     return 1;
 }
 
 static uint8_t app_imu_live(void) {
+    Oled_Fill(&oled, Oled_ColorBlack);
+    //Oled_ClearRectangle(&oled, 44, 34, 86, 45);
+    Oled_SetCursor(&oled, 56, 0);
+    Oled_DrawString(&oled, "X:", &Font_7x10);
+    Str_PrintFloat(display.charBuf, 5, 2, false, imu.accelx);
+    Oled_SetCursor(&oled, 77, 0);
+    Oled_DrawString(&oled, display.charBuf, &Font_7x10);
+    Oled_DrawBitmap(&oled, 96, 7, Bitmap_Decimal, 3, 3);
+
+    Oled_SetCursor(&oled, 56, 16);
+    Oled_DrawString(&oled, "Y:", &Font_7x10);
+    Str_PrintFloat(display.charBuf, 5, 2, false, imu.accely);
+    Oled_SetCursor(&oled, 77, 16);
+    Oled_DrawString(&oled, display.charBuf, &Font_7x10);
+    Oled_DrawBitmap(&oled, 96, 23, Bitmap_Decimal, 3, 3);
+    
+    Oled_SetCursor(&oled, 56, 32);
+    Oled_DrawString(&oled, "Z:", &Font_7x10);
+    Str_PrintFloat(display.charBuf, 5, 2, false, imu.accelz);
+    Oled_SetCursor(&oled, 77, 32);
+    Oled_DrawString(&oled, display.charBuf, &Font_7x10); 
+    Oled_DrawBitmap(&oled, 96, 39, Bitmap_Decimal, 3, 3);
+
+    Oled_SetCursor(&oled, 35, 48);
+    Oled_DrawString(&oled, "Temp: ", &Font_7x10);
+    Str_PrintFloat(display.charBuf, 4, 1, false, imu.temperature);
+    Oled_SetCursor(&oled, 84, 48);
+    Oled_DrawString(&oled, display.charBuf, &Font_7x10);
+    Oled_DrawBitmap(&oled, 103, 55, Bitmap_Decimal, 3, 3);
     return 1;
 }
 
@@ -364,14 +398,6 @@ static struct Display_Option replicator_options[4] = {
 };
 static struct Display_Screen replicator_screen = {.optionCount = 4, .options = replicator_options};
 /////////////////////////////////////////////////////////////////////////////////////////////
-/*
-static struct Display_Screen replicator_value = {};
-static struct Display_Option replicator_options[0] = {
-        {.text = "Value", .redirect = &replicator_value},
-};
-static struct Display_Screen replicator_screen = {.optionCount = 0, .options = replicator_options};
-*/
-/////////////////////////////////////////////////////////////////////////////////////////////
 static struct Display_Screen gps_live = {.update = &app_gps_live};
 //static struct Display_Option gps_options[1] = {
 //        {.text = "Live", .redirect = &gps_live},
@@ -384,7 +410,7 @@ static struct Display_Screen magnet_screen = {.update = &app_magnet_live};
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Display_Screen imu_screen = {.update = &app_imu_live};
 /////////////////////////////////////////////////////////////////////////////////////////////
-static struct Display_Option menu_options[6] = {
+static struct Display_Option menu_options[9] = {
 //        {.text = "Enable", .var = &var_active},
 //        {.text = "Trigger", .redirect = &trigger_screen},
         {.text = "Sensor1", .redirect = &sensor1_screen},
@@ -392,13 +418,12 @@ static struct Display_Option menu_options[6] = {
         {.text = "Sensor3", .redirect = &sensor3_screen},
         {.text = "Replicator", .redirect = &replicator_screen},
         {.text = "GPS", .redirect = &gps_live},
-//        {.text = "Repicator", .redirect = &replicator_screen},
-//        {.text = "Pressure", .redirect = &pressure_screen},
-//        {.text = "Magnometer", .redirect = &magnet_screen},
-//        {.text = "Accel/Gyro", .redirect = &imu_screen},
+        {.text = "Accel", .redirect = &imu_screen},
+        {.text = "Magnometer", .redirect = &magnet_screen},
+        {.text = "Pressure", .redirect = &pressure_screen},
         {.text = "Reset", .action = &app_memory_reset},
 };
-static struct Display_Screen menu_screen = {.optionCount = 6, .options = menu_options};
+static struct Display_Screen menu_screen = {.optionCount = 9, .options = menu_options};
 static struct Display_Screen home_screen = {.update = &app_home_live, .redirect = &menu_screen};
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Display_Handle display = {.oled = &oled, .buttons = buttons, .memory = &memory, .top = &home_screen, .depth = 4, .chars = 12, .values_update = &app_values_update};
@@ -432,9 +457,9 @@ void App_Init(void) {
     
     Nmea_Init(&nmea);
     Gps_Init(&gps);
-    //Lps22hh_Init(&pressure);
-    //Qmc5883_Init(&magnet);
-    //Icm42688_Init(&imu);
+    Lps22hh_Init(&pressure);
+    Qmc5883_Init(&magnet);
+    Icm42688_Init(&imu);
 
     app_values_update();
 
