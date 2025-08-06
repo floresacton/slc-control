@@ -85,6 +85,7 @@ static struct Memory_Variable* memory_vars[17] = {
         &var_replicator_reload,
         &var_replicator_duty,
 };
+static struct Memory_Variable* var_sensor_circs[3] = {&var_sensor1_circ, &var_sensor2_circ, &var_sensor3_circ};
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Eeprom_Handle eeprom = {.hi2c = &hi2c1, .address = 0xA0, .pages = 512, .pageSize = 64};
 static struct Memory_Handle memory = {.eeprom = &eeprom, .hash = 49, .vars = memory_vars, .count = 17};
@@ -104,9 +105,9 @@ static struct Qmc5883_Handle magnet = {.hi2c = &hi2c2, .intPin = DRDYM_Pin, .rea
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Icm42688_Handle imu = {.hspi = &hspi1, .csPort = CSG_GPIO_Port, .csPin = CSG_Pin, .intPin = INTG_Pin};
 /////////////////////////////////////////////////////////////////////////////////////////////
-static struct Tach_Handle tach1 = {.tick_freq = 50000};
-static struct Tach_Handle tach2 = {.tick_freq = 50000};
-static struct Tach_Handle tach3 = {.tick_freq = 50000};
+static struct Tach_Handle tach1 = {.tick_freq = 10000};
+static struct Tach_Handle tach2 = {.tick_freq = 10000};
+static struct Tach_Handle tach3 = {.tick_freq = 10000};
 static struct Tach_Handle* tachs[3] = {&tach1, &tach2, &tach3};
 /////////////////////////////////////////////////////////////////////////////////////////////
 static struct Oled_Handle oled = {.hspi = &hspi2, .csPort = CSD_GPIO_Port, .csPin = CSD_Pin, .dcPort = DC_GPIO_Port, .dcPin = DC_Pin, .width = 128, .height = 64};
@@ -153,7 +154,7 @@ static uint8_t app_sensor_live(uint8_t chan) {
     Oled_SetCursor(&oled, 32, 20);
     Oled_DrawString(&oled, display.charBuf, &Font_7x10);
     
-    const uint32_t mm_per_hour = tachs[chan]->rpm * ((uint32_t)var_sensor3_circ.value * 60);
+    const uint32_t mm_per_hour = tachs[chan]->rpm * ((uint32_t)var_sensor_circs[chan]->value * 60);
     const uint16_t mph = mm_per_hour / 1609347; 
     sprintf(display.charBuf, "MPH:  %3d", mph);
     Oled_SetCursor(&oled, 32, 36);
@@ -533,7 +534,7 @@ void App_Update(void) {
     //HAL_Delay(30);
     //HAL_GPIO_WritePin(REPH_GPIO_Port, REPH_Pin, 0);
     //HAL_Delay(30);
-    const uint32_t mm_per_hour = tach1.rpm * ((uint32_t)var_sensor3_circ.value * 60);
+    const uint32_t mm_per_hour = tach1.rpm * ((uint32_t)var_sensor1_circ.value * 60);
     const uint16_t mph = mm_per_hour / 1609347;
 
     const uint32_t pps = ((uint32_t)var_replicator_pulses.value * mph * 1056) / (60 * (uint32_t)var_replicator_circ.value);
