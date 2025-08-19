@@ -121,6 +121,10 @@ void Icm42688_ExtHandler(struct Icm42688_Handle* handle) {
         handle->accelx = (float)ax / 2048.0f;
         handle->accely = (float)ay / 2048.0f;
         handle->accelz = (float)az / 2048.0f;
+        //compensation for mount
+        //sqrt(1-0.35^2) = 0.9367
+        //1/ans = 
+        handle->accelz = (handle->accelz + 0.35f) * 1.08f; // 1/0.65
         //handle->temperature = (float)temp / 132.48f + 25.0f;
     }
 }

@@ -332,10 +332,12 @@ static uint8_t app_home_live(void) {
     if (nmea.fix) {
         sprintf(display.charBuf, "%3d", (uint16_t)nmea.speed);
     } else {
-        display.charBuf[0] = '-';
-        display.charBuf[1] = 0;
+        display.charBuf[0] = ' ';
+        display.charBuf[1] = ' ';
+        display.charBuf[2] = '-';
+        display.charBuf[3] = 0;
     }
-    Oled_SetCursor(&oled, 77, 21);
+    Oled_SetCursor(&oled, 60, 20);
     Oled_DrawString(&oled, display.charBuf, &Font_14x20);
 
     Oled_DrawBitmap(&oled, 7, 20, Bitmap_Forward, 7, 8);
@@ -478,7 +480,6 @@ void App_Init(void) {
 
     HAL_Delay(100);
 
-    Oled_Init(&oled);
     // eeprom has no init
     Memory_Init(&memory);
     Button_Init(&button1);
@@ -498,6 +499,11 @@ void App_Init(void) {
     Tach_Init(&tach2);
     Tach_Init(&tach3);
 
+    HAL_GPIO_WritePin(DRV1_GPIO_Port, DRV1_Pin, 1);
+
+    HAL_Delay(100);
+
+    Oled_Init(&oled);
     Display_Init(&display);
 
     HAL_COMP_Start(&hcomp1);
