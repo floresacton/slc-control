@@ -122,13 +122,13 @@ static void app_values_update(void) {
     tach1.ppr = var_sensor1_pulses.value;
     tach1.max_rpm = mm_per_hour1 / ((uint32_t)var_sensor1_circ.value * 60);
 
-    const uint32_t mm_per_hour2 = (uint16_t)var_sensor2_max.value * 1609347;
-    tach2.ppr = var_sensor2_pulses.value;
-    tach2.max_rpm = mm_per_hour2 / ((uint32_t)var_sensor2_circ.value * 60);
+    //const uint32_t mm_per_hour2 = (uint16_t)var_sensor2_max.value * 1609347;
+    //tach2.ppr = var_sensor2_pulses.value;
+    //tach2.max_rpm = mm_per_hour2 / ((uint32_t)var_sensor2_circ.value * 60);
 
-    const uint32_t mm_per_hour3 = (uint16_t)var_sensor3_max.value * 1609347;
-    tach3.ppr = var_sensor3_pulses.value;
-    tach3.max_rpm = mm_per_hour3 / ((uint32_t)var_sensor3_circ.value * 60);
+    //const uint32_t mm_per_hour3 = (uint16_t)var_sensor3_max.value * 1609347;
+    //tach3.ppr = var_sensor3_pulses.value;
+    //tach3.max_rpm = mm_per_hour3 / ((uint32_t)var_sensor3_circ.value * 60);
 
     __HAL_TIM_SET_AUTORELOAD(&htim8, (uint16_t)var_replicator_reload.value-1);
     __HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_1, (uint16_t)var_replicator_duty.value-1);
@@ -357,6 +357,7 @@ static uint8_t app_home_live(void) {
     Oled_DrawString(&oled, display.charBuf, &Font_7x10);
     Oled_SetCursor(&oled, 37, 54);
     Oled_DrawString(&oled, "kPa", &Font_7x10);
+    Oled_DrawBitmap(&oled, 26, 61, Bitmap_Decimal, 3, 3);
 
     sprintf(display.charBuf, "%5d", (uint16_t)nmea.altitude);
     Oled_SetCursor(&oled, 70, 54);
@@ -478,7 +479,11 @@ void App_Init(void) {
     HAL_DAC_SetValue(&hdac1, DAC_CHANNEL_2, DAC_ALIGN_12B_R, 2048);
     HAL_DAC_SetValue(&hdac3, DAC_CHANNEL_1, DAC_ALIGN_12B_R, 2048);
 
+    HAL_GPIO_WritePin(DRV1_GPIO_Port, DRV1_Pin, 0);
+
     HAL_Delay(100);
+
+    HAL_GPIO_WritePin(DRV1_GPIO_Port, DRV1_Pin, 1);
 
     // eeprom has no init
     Memory_Init(&memory);
@@ -487,8 +492,6 @@ void App_Init(void) {
     Button_Init(&button3);
     Button_Init(&button4);
     
-    //Nmea_Init(&nmea);
-    //Gps_Init(&gps);
     Lps22hh_Init(&pressure);
     Qmc5883_Init(&magnet);
     Icm42688_Init(&imu);
@@ -499,23 +502,19 @@ void App_Init(void) {
     Tach_Init(&tach2);
     Tach_Init(&tach3);
 
-    HAL_GPIO_WritePin(DRV1_GPIO_Port, DRV1_Pin, 1);
-
     HAL_Delay(100);
 
     Oled_Init(&oled);
     Display_Init(&display);
 
-    HAL_COMP_Start(&hcomp1);
+    //HAL_COMP_Start(&hcomp1);
     HAL_COMP_Start(&hcomp2);
-    HAL_COMP_Start(&hcomp3);
+    //HAL_COMP_Start(&hcomp3);
 
     HAL_TIM_Base_Start_IT(&htim1);
     HAL_TIM_Base_Start_IT(&htim2);
     HAL_TIM_Base_Start_IT(&htim3);
     HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_1);
-
-    //Gps_Init(&gps);
 }
 
 void App_Update(void) {
@@ -540,6 +539,7 @@ void App_Update(void) {
     //HAL_Delay(30);
     //HAL_GPIO_WritePin(REPH_GPIO_Port, REPH_Pin, 0);
     //HAL_Delay(30);
+    
     const uint32_t mm_per_hour = tach1.rpm * ((uint32_t)var_sensor1_circ.value * 60);
     const uint16_t mph = mm_per_hour / 1609347;
 
@@ -557,6 +557,7 @@ void App_Update(void) {
     Lps22hh_ExtHandler(&pressure);
     Qmc5883_ExtHandler(&magnet);
     Icm42688_ExtHandler(&imu);
+
     //if (gps.init){// == 2 && gps.available) {
         //gps.available = 0;
         //Nmea_Parse(&nmea, (char*)gps.readBuf, gps.readSize);
@@ -606,12 +607,12 @@ void App_UsbHandler(uint8_t* data, uint32_t len) {
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     if (htim == &htim1) {
         Tach_Tick(&tach1);
-        Tach_Tick(&tach2);
-        Tach_Tick(&tach3);
+        //Tach_Tick(&tach2);
+        //Tach_Tick(&tach3);
     } else if (htim == &htim2) {
         Tach_Update(&tach1);
-        Tach_Update(&tach2);
-        Tach_Update(&tach3);
+        //Tach_Update(&tach2);
+        //Tach_Update(&tach3);
     } else if (htim == &htim3) {
         Button_Update(&button1);
         Button_Update(&button2);
@@ -653,8 +654,8 @@ void HAL_COMP_TriggerCallback(COMP_HandleTypeDef *hcomp) {
     if (hcomp == &hcomp2) {
         Tach_Pulse(&tach1);
     } else if (hcomp == &hcomp1) {
-        Tach_Pulse(&tach2);
+        //Tach_Pulse(&tach2);
     } else if (hcomp == &hcomp3){
-        Tach_Pulse(&tach3);
+        //Tach_Pulse(&tach3);
     }
 }

@@ -66,7 +66,7 @@ void Lps22hh_ExtHandler(struct Lps22hh_Handle* handle) {
 
         int16_t temp = 0;
         memcpy(&temp, handle->data+3, 2);
-        handle->temperature = (float)temp / 500.0f * 9.0f + 13.0f; // F
+        handle->temperature = (float)temp / 500.0f * 9.0f + 15.0f; // F
     }
 }
 
